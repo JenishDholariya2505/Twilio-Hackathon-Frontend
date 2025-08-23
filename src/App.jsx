@@ -1,46 +1,43 @@
 // src/App.jsx
-import React, { useEffect, useRef, useState } from "react";
 import {
-  Layout,
-  Card,
-  Space,
-  Input,
-  Button,
-  Tag,
-  Typography,
-  Tooltip,
-  Modal,
-  Select,
-  Divider,
-  List,
-  message,
-  Row,
-  Col,
-  Table,
-  Flex,
-} from "antd";
-import {
-  PhoneFilled,
-  OrderedListOutlined,
-  PhoneOutlined,
-  SoundOutlined,
-  AudioOutlined,
-  SoundTwoTone,
   AudioTwoTone,
-  NumberOutlined,
-  MessageOutlined,
-  CloseCircleOutlined,
-  ReloadOutlined,
-  PauseOutlined,
   CaretRightOutlined,
+  CloseCircleOutlined,
+  MessageOutlined,
+  NumberOutlined,
+  OrderedListOutlined,
+  PauseOutlined,
+  PhoneFilled,
+  ReloadOutlined,
+  SoundOutlined,
+  SoundTwoTone,
 } from "@ant-design/icons";
-import { getDevice, destroyDevice } from "./twilioClient";
+import {
+  Button,
+  Card,
+  Col,
+  Divider,
+  Flex,
+  Input,
+  Layout,
+  List,
+  Modal,
+  Row,
+  Select,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { destroyDevice, getDevice } from "./twilioClient";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 
 export default function App() {
   const deviceRef = useRef(null);
+  const deviceRefCall = useRef(null);
   const [status, setStatus] = useState("Connecting…");
   const [to, setTo] = useState("+919687424831"); // default for you 😉 919687424831
   const [activeCall, setActiveCall] = useState(null);
@@ -53,7 +50,7 @@ export default function App() {
   const [spkId, setSpkId] = useState();
   const [smsBody, setSmsBody] = useState(""); // 👈 renamed from message → smsBody
   const [callLogs, setCallLogs] = useState([]); // 👈 renamed state
-  // const [logs, setLogs] = useState([]);
+  const [callLoading, setCallLoading] = useState(true);
   const [messageLogs, setMessageLogs] = useState([]);
   const [messageLoading, setMessageLoading] = useState(true);
   const pushLog = (line) =>
@@ -76,8 +73,11 @@ export default function App() {
 
       const data = await res.json();
       if (data.success) {
-        setSmsBody("");
-        pushLog("✅ Message sent! SID: " + data.sid);
+        setTimeout(() => {
+          setSmsBody("");
+          fetchLogs();
+          pushLog("✅ Message sent! SID: " + data.sid);
+        }, 1500);
       } else {
         pushLog("❌ Failed: " + data.error);
       }
@@ -108,21 +108,24 @@ export default function App() {
     fetchLogs();
   }, []);
 
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res = await fetch(
-          "https://twilio-hackathon-backend.vercel.app/call-logs?limit=500"
-        );
-        const data = await res.json();
-        if (data.success) {
-          setCallLogs(data.calls); // 👈 updated setter
-        }
-      } catch (err) {
-        console.error("Error fetching logs:", err);
+  const fetchCallLogs = async () => {
+    setCallLoading(true);
+    try {
+      const res = await fetch(
+        "https://twilio-hackathon-backend.vercel.app/call-logs?limit=500"
+      );
+      const data = await res.json();
+      if (data.success) {
+        setCallLoading(false);
+        setCallLogs(data.calls); // 👈 updated setter
       }
+    } catch (err) {
+      setCallLoading(false);
+      console.error("Error fetching logs:", err);
     }
-    fetchLogs();
+  };
+  useEffect(() => {
+    fetchCallLogs();
   }, []);
 
   // init device
@@ -164,6 +167,8 @@ export default function App() {
     call.on("accept", () => {
       setActiveCall(call);
       setMuted(!!call.isMuted?.());
+      console.log(call, "callcallcallcall");
+
       pushLog(
         `Call accepted (CallSid: ${call.parameters?.CallSid || "pending"})`
       );
@@ -197,6 +202,7 @@ export default function App() {
       const call = await deviceRef.current.connect({
         params: { To: to },
       });
+      deviceRefCall.current = call;
 
       pushLog("Call initiated, waiting for response...");
       wireCall(call);
@@ -233,6 +239,8 @@ export default function App() {
   }, [to]);
 
   function hangup() {
+    fetchCallLogs();
+    deviceRefCall.current = null;
     activeCall?.disconnect();
   }
 
@@ -249,6 +257,38 @@ export default function App() {
 
     // Special handling for call forwarding (9)
     if (d === "9") {
+      const forwardNumber = "+916353791329";
+      const callSid = deviceRefCall.current?.parameters?.CallSid;
+
+      pushLog(`Call forwarding to: ${forwardNumber}`);
+
+      fetch(`https://twilio-hackathon-backend.vercel.app/calls/forward`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_auth_token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ConferenceSid: callSid,
+          core_call_number: fromNumber,
+          NewNumber: forwardNumber,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! Status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log(data, "res");
+          pushLog(`Call forwarded to ${forwardNumber}`);
+        })
+        .catch((err) => {
+          console.error("Forward failed", err);
+        });
+
+      return;
       pushLog("🔄 Sending DTMF 9 for call forwarding...");
       activeCall.sendDigits(d);
       pushLog("✅ DTMF 9 sent - call should be forwarded");
@@ -298,17 +338,6 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
-  const handleCallError = (error) => {
-    console.error("Call error:", error);
-
-    if (error.code === 31005) {
-      // Gateway error - attempt reconnection
-      setTimeout(() => {
-        reconnectCall();
-      }, 2000);
-    }
-  };
 
   const reconnectCall = async () => {
     try {
@@ -1163,20 +1192,7 @@ export default function App() {
                   icon={<ReloadOutlined />}
                   onClick={() => {
                     // Refresh call logs
-                    fetch(
-                      "https://twilio-be-henna.vercel.app/call-logs?limit=500"
-                    )
-                      .then((res) => res.json())
-                      .then((data) => {
-                        if (data.success) {
-                          setCallLogs(data.calls);
-                          pushLog("Call history refreshed");
-                        }
-                      })
-                      .catch((err) => {
-                        console.error("Error fetching logs:", err);
-                        pushLog("Failed to refresh call history");
-                      });
+                    fetchCallLogs();
                   }}
                   style={{
                     borderRadius: "8px",
@@ -1200,6 +1216,7 @@ export default function App() {
               >
                 <List
                   size="small"
+                  loading={callLoading}
                   dataSource={callLogs}
                   renderItem={(call) => (
                     <List.Item
@@ -1356,6 +1373,7 @@ export default function App() {
                 <List
                   size="small"
                   dataSource={messageLogs}
+                  loading={messageLoading}
                   renderItem={(msg, index) => (
                     <List.Item
                       style={{
@@ -1608,6 +1626,8 @@ export default function App() {
           background: "rgb(219 219 219)",
           color: "rgb(0 0 0)",
           padding: "20px",
+          zIndex: 99,
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
           height: "80px",
           flexShrink: 0,
           display: "flex",
