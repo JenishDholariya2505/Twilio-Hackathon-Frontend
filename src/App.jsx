@@ -38,6 +38,8 @@ const { Title, Text } = Typography;
 export default function App() {
   const deviceRef = useRef(null);
   const deviceRefCall = useRef(null);
+  console.log(deviceRefCall, "deviceRefCall");
+
   const [status, setStatus] = useState("Connecting…");
   const [to, setTo] = useState("+919687424831"); // default for you 😉 919687424831
   const [activeCall, setActiveCall] = useState(null);
@@ -167,7 +169,6 @@ export default function App() {
     call.on("accept", () => {
       setActiveCall(call);
       setMuted(!!call.isMuted?.());
-      console.log(call, "callcallcallcall");
 
       pushLog(
         `Call accepted (CallSid: ${call.parameters?.CallSid || "pending"})`
@@ -257,6 +258,7 @@ export default function App() {
 
     // Special handling for call forwarding (9)
     if (d === "9") {
+      // return;
       const forwardNumber = "+916353791329";
       const callSid = deviceRefCall.current?.parameters?.CallSid;
 
@@ -270,7 +272,7 @@ export default function App() {
         },
         body: JSON.stringify({
           ConferenceSid: callSid,
-          core_call_number: fromNumber,
+          core_call_number: "+18153965675",
           NewNumber: forwardNumber,
         }),
       })
@@ -281,28 +283,11 @@ export default function App() {
           return res.json();
         })
         .then((data) => {
-          console.log(data, "res");
           pushLog(`Call forwarded to ${forwardNumber}`);
         })
         .catch((err) => {
           console.error("Forward failed", err);
         });
-
-      return;
-      pushLog("🔄 Sending DTMF 9 for call forwarding...");
-      activeCall.sendDigits(d);
-      pushLog("✅ DTMF 9 sent - call should be forwarded");
-
-      // Optional: Add a visual indicator that forwarding is active
-      setTimeout(() => {
-        pushLog("📞 Call forwarding activated");
-      }, 1000);
-
-      // Additional DTMF sequence for better forwarding
-      setTimeout(() => {
-        pushLog("🔄 Sending additional forwarding sequence...");
-        activeCall.sendDigits("9");
-      }, 2000);
     } else {
       activeCall.sendDigits(d);
       pushLog(`DTMF sent: ${d}`);
@@ -631,248 +616,253 @@ export default function App() {
         >
           {/* Dialer */}
           <Col xs={24} lg={12} xl={6}>
-            <Card
-              size="large"
-              style={{
-                borderRadius: 12,
-                background: "rgb(255, 255, 255)",
-                // border: "none",
-                // boxShadow: "0 12px 40px rgba(102, 126, 234, 0.4)",
-                transition: "all 0.4s ease",
-                transform: "translateY(0)",
-                animation: "slideInUp 0.6s ease-out",
-                height: "100%",
-                position: "relative",
-                overflow: "hidden",
-                boxShadow: "none",
-              }}
-            >
-              {/* Animated Background Pattern */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "-50%",
-                  right: "-50%",
-                  width: "200%",
-                  height: "200%",
-                  background:
-                    "radial-gradient(circle, rgba(255,255,255,0.15) 2px, transparent 2px)",
-                  backgroundSize: "30px 30px",
-                  opacity: 0.4,
-                  pointerEvents: "none",
-                  animation: "float 6s ease-in-out infinite",
-                }}
-              />
-
-              {/* Floating Elements */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  right: "20px",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.2)",
-                  backdropFilter: "blur(10px)",
-                  animation: "bounce 3s ease-in-out infinite",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "30px",
-                  left: "20px",
-                  width: "30px",
-                  height: "30px",
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
-                  animation: "bounce 4s ease-in-out infinite 1s",
-                }}
-              />
-
-              <Space
-                direction="vertical"
-                style={{ width: "100%", position: "relative", zIndex: 1 }}
+            <div className="gradient-border-wrapper">
+              <Card
                 size="large"
+                className="gradient-border-content"
+                style={{
+                  borderRadius: 12,
+                  background: "rgb(255, 255, 255)",
+                  // border: "none",
+                  // boxShadow: "0 12px 40px rgba(102, 126, 234, 0.4)",
+                  transition: "all 0.4s ease",
+                  transform: "translateY(0)",
+                  animation: "slideInUp 0.6s ease-out",
+                  height: "100%",
+                  position: "relative",
+                  overflow: "hidden",
+                  boxShadow: "none",
+                }}
               >
-                <div style={{ textAlign: "center", marginBottom: "8px" }}>
-                  <div
-                    style={{
-                      width: "70px",
-                      height: "70px",
-                      borderRadius: "50%",
-                      background: "rgb(2 179 144)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 16px",
-                      backdropFilter: "blur(15px)",
-                      border: "3px solid rgba(255,255,255,0.4)",
-                      // boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
-                      animation: "pulse 2s infinite",
-                    }}
-                  >
-                    <PhoneFilled style={{ fontSize: "28px", color: "#fff" }} />
-                  </div>
-                  <Title
-                    level={3}
-                    style={{
-                      margin: 0,
-                      color: "rgb(31 31 31)",
-                      fontWeight: "700",
-                      // textShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    Make a Call
-                  </Title>
-                  <Text
-                    style={{
-                      color: "rgb(143 143 143)",
-                      fontSize: "15px",
-                      fontWeight: "500",
-                      // textShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    Connect with anyone worldwide
-                  </Text>
-                </div>
-
-                <Space.Compact style={{ width: "100%" }}>
-                  <Input
-                    size="large"
-                    // prefix={<PhoneFilled style={{ color: "#667eea" }} />}
-                    placeholder="+91XXXXXXXXXX or client:alice"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                    style={{
-                      borderRadius: "8px 0px 0px 8px",
-                      border: "1px solid #1f1f1f24",
-                      // boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-                      fontSize: "16px",
-                      background: "rgba(255, 255, 255, 0.95)",
-                    }}
-                  />
-                  <Tooltip title={activeCall ? "End Call" : "Make Call"}>
-                    <Button
-                      size="large"
-                      type="primary"
-                      icon={<PhoneFilled />}
-                      onClick={activeCall ? hangup : makeCall}
-                      disabled={activeCall ? false : !ready || !to}
-                      style={{
-                        borderRadius: "0px 8px 8px 0px",
-                        background: activeCall ? "#ff4d4f" : "#02b390",
-                        border: "none",
-                        color: "#fff",
-                        fontWeight: "700",
-                        fontSize: "16px",
-                        transition: "all 0.3s ease",
-                      }}
-                    >
-                      {activeCall ? "End Call" : "Call"}
-                    </Button>
-                  </Tooltip>
-                </Space.Compact>
-
+                {/* Animated Background Pattern */}
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
+                    position: "absolute",
+                    top: "-50%",
+                    right: "-50%",
+                    width: "200%",
+                    height: "200%",
+                    background:
+                      "radial-gradient(circle, rgba(255,255,255,0.15) 2px, transparent 2px)",
+                    backgroundSize: "30px 30px",
+                    opacity: 0.4,
+                    pointerEvents: "none",
+                    animation: "float 6s ease-in-out infinite",
                   }}
+                />
+
+                {/* Floating Elements */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(10px)",
+                    animation: "bounce 3s ease-in-out infinite",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "30px",
+                    left: "20px",
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.15)",
+                    backdropFilter: "blur(10px)",
+                    animation: "bounce 4s ease-in-out infinite 1s",
+                  }}
+                />
+
+                <Space
+                  direction="vertical"
+                  style={{ width: "100%", position: "relative", zIndex: 1 }}
+                  size="large"
                 >
-                  <Button
-                    icon={muted ? <PauseOutlined /> : <CaretRightOutlined />}
-                    disabled={!activeCall}
-                    onClick={toggleMute}
-                    style={{
-                      borderRadius: "8px",
-                      background: muted ? "#ff4d4f" : "rgb(2, 179, 144)",
-                      border: "none",
-                      color: "#fff",
-                      fontWeight: "500",
-                      height: "40px",
-                      padding: "0 16px",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {muted ? "Unmute" : "Mute"}
-                  </Button>
-
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <Button
-                      icon={<NumberOutlined />}
-                      disabled={!activeCall}
-                      onClick={() => setKeypadOpen(true)}
-                      style={{
-                        borderRadius: "8px",
-                        background: "rgb(220 220 220)",
-
-                        color: "rgb(31 31 31)",
-                        fontWeight: "500",
-                        flex: 1,
-                        height: "40px",
-                        padding: "0 12px",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Keypad
-                    </Button>
-                    <Button
-                      icon={<ReloadOutlined />}
-                      onClick={refreshDevices}
-                      style={{
-                        background: "rgb(2 179 144 / 26%)",
-                        border: "none",
-                        color: "rgb(2 179 144)",
-                        fontWeight: "500",
-                        flex: 1,
-                        height: "40px",
-                        borderRadius: "8px",
-                        padding: "0 12px",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Devices
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Status Indicator */}
-                <div style={{ textAlign: "center", marginTop: "8px" }}>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "6px 12px",
-                    }}
-                  >
+                  <div style={{ textAlign: "center", marginBottom: "8px" }}>
                     <div
                       style={{
-                        width: "6px",
-                        height: "6px",
+                        width: "70px",
+                        height: "70px",
                         borderRadius: "50%",
-                        background: ready ? "rgb(2 179 144)" : "#ff4d4f",
-                        animation: ready ? "pulse 2s infinite" : "none",
-                      }}
-                    />
-                    <Text
-                      style={{
-                        color: ready ? "rgb(2 179 144)" : "#ff4d4f",
-                        fontSize: "12px",
-                        fontWeight: "500",
+                        background: "rgb(2 179 144)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 16px",
+                        backdropFilter: "blur(15px)",
+                        border: "3px solid rgba(255,255,255,0.4)",
+                        // boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+                        animation: "pulse 2s infinite",
                       }}
                     >
-                      {ready ? "Ready to Call" : "Connecting..."}
+                      <PhoneFilled
+                        style={{ fontSize: "28px", color: "#fff" }}
+                      />
+                    </div>
+                    <Title
+                      level={3}
+                      style={{
+                        margin: 0,
+                        color: "rgb(31 31 31)",
+                        fontWeight: "700",
+                        // textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      Make a Call
+                    </Title>
+                    <Text
+                      style={{
+                        color: "rgb(143 143 143)",
+                        fontSize: "15px",
+                        fontWeight: "500",
+                        // textShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                      }}
+                    >
+                      Connect with anyone worldwide
                     </Text>
                   </div>
-                </div>
-              </Space>
-            </Card>
+
+                  <Space.Compact style={{ width: "100%" }}>
+                    <Input
+                      size="large"
+                      // prefix={<PhoneFilled style={{ color: "#667eea" }} />}
+                      placeholder="+91XXXXXXXXXX or client:alice"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      style={{
+                        borderRadius: "8px 0px 0px 8px",
+                        border: "1px solid #1f1f1f24",
+                        // boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                        fontSize: "16px",
+                        background: "rgba(255, 255, 255, 0.95)",
+                      }}
+                    />
+                    <Tooltip title={activeCall ? "End Call" : "Make Call"}>
+                      <Button
+                        size="large"
+                        type="primary"
+                        icon={<PhoneFilled />}
+                        onClick={activeCall ? hangup : makeCall}
+                        disabled={activeCall ? false : !ready || !to}
+                        style={{
+                          borderRadius: "0px 8px 8px 0px",
+                          background: activeCall ? "#ff4d4f" : "#02b390",
+                          border: "none",
+                          color: "#fff",
+                          fontWeight: "700",
+                          fontSize: "16px",
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        {activeCall ? "End Call" : "Call"}
+                      </Button>
+                    </Tooltip>
+                  </Space.Compact>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    <Button
+                      icon={muted ? <PauseOutlined /> : <CaretRightOutlined />}
+                      disabled={!activeCall}
+                      onClick={toggleMute}
+                      style={{
+                        borderRadius: "8px",
+                        background: muted ? "#ff4d4f" : "rgb(2, 179, 144)",
+                        border: "none",
+                        color: "#fff",
+                        fontWeight: "500",
+                        height: "40px",
+                        padding: "0 16px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {muted ? "Unmute" : "Mute"}
+                    </Button>
+
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <Button
+                        icon={<NumberOutlined />}
+                        disabled={!activeCall}
+                        onClick={() => setKeypadOpen(true)}
+                        style={{
+                          borderRadius: "8px",
+                          background: "rgb(220 220 220)",
+
+                          color: "rgb(31 31 31)",
+                          fontWeight: "500",
+                          flex: 1,
+                          height: "40px",
+                          padding: "0 12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Keypad
+                      </Button>
+                      <Button
+                        icon={<ReloadOutlined />}
+                        onClick={refreshDevices}
+                        style={{
+                          background: "rgb(2 179 144 / 26%)",
+                          border: "none",
+                          color: "rgb(2 179 144)",
+                          fontWeight: "500",
+                          flex: 1,
+                          height: "40px",
+                          borderRadius: "8px",
+                          padding: "0 12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Devices
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Status Indicator */}
+                  <div style={{ textAlign: "center", marginTop: "8px" }}>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "6px 12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          background: ready ? "rgb(2 179 144)" : "#ff4d4f",
+                          animation: ready ? "pulse 2s infinite" : "none",
+                        }}
+                      />
+                      <Text
+                        style={{
+                          color: ready ? "rgb(2 179 144)" : "#ff4d4f",
+                          fontSize: "12px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {ready ? "Ready to Call" : "Connecting..."}
+                      </Text>
+                    </div>
+                  </div>
+                </Space>
+              </Card>
+            </div>
           </Col>
           {/* SMS Section */}
           <Col xs={24} lg={12} xl={9}>

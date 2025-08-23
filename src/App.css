@@ -33,3 +33,20 @@
 .read-the-docs {
   color: #888;
 }
+.gradient-border-wrapper {
+  background: linear-gradient(270deg, #ff4d4f, #764ba2, #40a9ff, #ff4d4f);
+  background-size: 600% 600%;
+  animation: gradient-anim 6s ease infinite;
+}
+
+@keyframes gradient-anim {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
