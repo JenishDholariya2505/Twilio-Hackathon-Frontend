@@ -1667,10 +1667,7 @@ export default function App() {
                   fontSize: 20,
                   fontWeight: "bold",
                   borderRadius: 12,
-                  background:
-                    k === "9"
-                      ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                      : "#f0f2f5",
+                  background: k === "9" ? "rgb(2, 179, 144)" : "#f0f2f5",
                   border: k === "9" ? "none" : "1px solid #d9d9d9",
                   color: k === "9" ? "#fff" : "#000",
                   transition: "all 0.2s ease",
@@ -1699,7 +1696,7 @@ export default function App() {
             onClick={() => sendDigit("9")}
             style={{
               borderRadius: 8,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: "rgb(2, 179, 144)",
               border: "none",
             }}
           >
