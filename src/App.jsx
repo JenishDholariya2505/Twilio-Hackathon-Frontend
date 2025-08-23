@@ -16,15 +16,19 @@ import {
   message,
   Row,
   Col,
+  Table,
+  Flex,
 } from "antd";
 import {
   PhoneFilled,
+  OrderedListOutlined,
   PhoneOutlined,
   SoundOutlined,
   AudioOutlined,
   SoundTwoTone,
   AudioTwoTone,
   NumberOutlined,
+  MessageOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
   PauseOutlined,
@@ -49,8 +53,15 @@ export default function App() {
   const [spkId, setSpkId] = useState();
   const [smsBody, setSmsBody] = useState(""); // 👈 renamed from message → smsBody
   const [callLogs, setCallLogs] = useState([]); // 👈 renamed state
-
+  // const [logs, setLogs] = useState([]);
+  const [messageLogs, setMessageLogs] = useState([]);
+  const [messageLoading, setMessageLoading] = useState(true);
+  const pushLog = (line) =>
+    setLogs((prev) =>
+      [`${new Date().toLocaleTimeString()}  ${line}`, ...prev].slice(0, 200)
+    );
   const sendSMS = async () => {
+    pushLog("Sending SMS...");
     try {
       const res = await fetch("https://twilio-be-henna.vercel.app/send-sms", {
         method: "POST",
@@ -64,28 +75,44 @@ export default function App() {
       });
 
       const data = await res.json();
-
       if (data.success) {
-        alert("✅ Message sent! SID: " + data.sid);
+        setSmsBody("");
+        pushLog("✅ Message sent! SID: " + data.sid);
       } else {
-        alert("❌ Failed: " + data.error);
+        pushLog("❌ Failed: " + data.error);
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      alert("Something went wrong");
+
+      pushLog("Something went wrong");
     }
   };
 
-  const pushLog = (line) =>
-    setLogs((prev) =>
-      [`${new Date().toLocaleTimeString()}  ${line}`, ...prev].slice(0, 200)
-    );
+  const fetchLogs = async () => {
+    setMessageLoading(true);
+    try {
+      const res = await fetch(
+        "https://twilio-hackathon-backend.vercel.app/message-logs"
+      );
+
+      const data = await res.json();
+      if (data.success) {
+        setMessageLogs(data.messages || []); // assuming API returns JSON array
+      }
+    } catch (err) {
+    } finally {
+      setMessageLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchLogs();
+  }, []);
 
   useEffect(() => {
     async function fetchLogs() {
       try {
         const res = await fetch(
-          "https://twilio-be-henna.vercel.app/call-logs?limit=500"
+          "https://twilio-hackathon-backend.vercel.app/call-logs?limit=500"
         );
         const data = await res.json();
         if (data.success) {
@@ -324,73 +351,241 @@ export default function App() {
     return label || "Default";
   }
 
+  const columns = [
+    {
+      title: "SID",
+      dataIndex: "sid",
+      key: "sid",
+      ellipsis: true,
+    },
+    {
+      title: "From",
+      dataIndex: "from",
+      key: "from",
+    },
+    {
+      title: "To",
+      dataIndex: "to",
+      key: "to",
+    },
+    {
+      title: "Body",
+      dataIndex: "body",
+      key: "body",
+      ellipsis: true,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        let color =
+          status === "delivered"
+            ? "green"
+            : status === "failed"
+            ? "red"
+            : "blue";
+        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+      },
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      key: "price",
+      render: (price, record) => (
+        <span>
+          {price} {record.priceUnit}
+        </span>
+      ),
+    },
+    {
+      title: "Date Sent",
+      dataIndex: "dateSent",
+      key: "dateSent",
+      render: (text) => new Date(text).toLocaleString(),
+    },
+  ];
+
   const ready = /Ready/i.test(status);
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       <Header
         style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: "#1f1f1f", // clean dark header
           color: "#fff",
           display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
           padding: "0 24px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           height: "64px",
-          flexShrink: 0,
+          borderBottom: "1px solid #303030",
         }}
       >
-        <Space>
-          <PhoneFilled
+        {/* Left Section */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
             style={{
-              fontSize: 24,
-              color: "#fff",
-              animation: "pulse 2s infinite",
-            }}
-          />
-          <Title
-            level={4}
-            style={{
-              color: "#fff",
-              margin: 0,
-              animation: "fadeIn 1s ease-out",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              background: "#262626",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Twilio Voice Hub
-          </Title>
-        </Space>
-        <div style={{ marginLeft: "auto" }}>
-          <Space>
-            <Tag
-              color={
-                ready
-                  ? "success"
-                  : status.startsWith("Error")
-                  ? "error"
-                  : "processing"
-              }
+            <PhoneFilled style={{ fontSize: "18px", color: "#1890ff" }} />
+          </div>
+
+          <Flex vertical align="flex-start">
+            <Title
+              level={4}
               style={{
-                fontSize: 13,
-                padding: "6px 12px",
-                borderRadius: 20,
-                fontWeight: 500,
-                animation: ready ? "pulse 2s infinite" : "none",
+                color: "#fff",
+                margin: 0,
+                fontWeight: "600",
+                fontSize: "16px",
               }}
             >
-              {ready ? "🟢 " : status.startsWith("Error") ? "🔴 " : "🟡 "}
-              {status}
-            </Tag>
-            {isOnline ? (
-              <Tag color="success" style={{ borderRadius: 20 }}>
-                🌐 Online
-              </Tag>
-            ) : (
-              <Tag color="error" style={{ borderRadius: 20 }}>
-                📴 Offline
-              </Tag>
-            )}
-          </Space>
+              Twilio Voice Hub
+            </Title>
+            <Text
+              style={{
+                color: "#bfbfbf",
+                fontSize: "12px",
+              }}
+            >
+              Professional Communication
+            </Text>
+          </Flex>
         </div>
+
+        {/* Right Section */}
+        <Space size="middle" align="center">
+          {/* Status Badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 16px",
+              borderRadius: "20px",
+              background: ready
+                ? "rgba(82,196,26,0.2)"
+                : status.startsWith("Error")
+                ? "rgba(255,77,79,0.2)"
+                : "rgba(250,173,20,0.2)",
+              border: `1px solid ${
+                ready
+                  ? "rgba(82,196,26,0.4)"
+                  : status.startsWith("Error")
+                  ? "rgba(255,77,79,0.4)"
+                  : "rgba(250,173,20,0.4)"
+              }`,
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <div
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: ready
+                  ? "#52c41a"
+                  : status.startsWith("Error")
+                  ? "#ff4d4f"
+                  : "#faad14",
+                boxShadow: ready
+                  ? "0 0 8px rgba(82,196,26,0.6)"
+                  : status.startsWith("Error")
+                  ? "0 0 8px rgba(255,77,79,0.6)"
+                  : "0 0 8px rgba(250,173,20,0.6)",
+                animation: ready ? "pulse 2s infinite" : "none",
+              }}
+            />
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: "600",
+                textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              {ready ? "Ready" : status.startsWith("Error") ? "Error" : status}
+            </Text>
+          </div>
+
+          {/* Online Status */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              borderRadius: "16px",
+              background: isOnline
+                ? "rgba(82,196,26,0.2)"
+                : "rgba(255,77,79,0.2)",
+              // border: `1px solid ${
+              //   isOnline ? "rgba(82,196,26,0.4)" : "rgba(255,77,79,0.4)"
+              // }`,
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <div
+              style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: isOnline ? "#52c41a" : "#ff4d4f",
+                boxShadow: isOnline
+                  ? "0 0 6px rgba(82,196,26,0.6)"
+                  : "0 0 6px rgba(255,77,79,0.6)",
+                animation: isOnline ? "pulse 1.5s infinite" : "none",
+              }}
+            />
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: "12px",
+                fontWeight: "500",
+                textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              {isOnline ? "Online" : "Offline"}
+            </Text>
+          </div>
+
+          {/* Time Display */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              borderRadius: "16px",
+              background: "rgba(255,255,255,0.15)",
+              // border: "1px solid rgba(255,255,255,0.3)",
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: "12px",
+                fontWeight: "500",
+                margin: 0,
+                textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              {new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </div>
+        </Space>
       </Header>
 
       <Content
@@ -406,148 +601,308 @@ export default function App() {
           style={{ width: "100%", margin: "0 auto", paddingBottom: 20 }}
         >
           {/* Dialer */}
-          <Col xs={24} lg={12} xl={8}>
+          <Col xs={24} lg={12} xl={6}>
             <Card
               size="large"
               style={{
-                borderRadius: 16,
-                background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-                border: "none",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                transition: "all 0.3s ease",
+                borderRadius: 12,
+                background: "rgb(255, 255, 255)",
+                // border: "none",
+                // boxShadow: "0 12px 40px rgba(102, 126, 234, 0.4)",
+                transition: "all 0.4s ease",
                 transform: "translateY(0)",
                 animation: "slideInUp 0.6s ease-out",
                 height: "100%",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                position: "relative",
+                overflow: "hidden",
+                boxShadow: "none",
               }}
             >
+              {/* Animated Background Pattern */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "-50%",
+                  right: "-50%",
+                  width: "200%",
+                  height: "200%",
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,0.15) 2px, transparent 2px)",
+                  backgroundSize: "30px 30px",
+                  opacity: 0.4,
+                  pointerEvents: "none",
+                  animation: "float 6s ease-in-out infinite",
+                }}
+              />
+
+              {/* Floating Elements */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "20px",
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.2)",
+                  backdropFilter: "blur(10px)",
+                  animation: "bounce 3s ease-in-out infinite",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "30px",
+                  left: "20px",
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.15)",
+                  backdropFilter: "blur(10px)",
+                  animation: "bounce 4s ease-in-out infinite 1s",
+                }}
+              />
+
               <Space
                 direction="vertical"
-                style={{ width: "100%" }}
+                style={{ width: "100%", position: "relative", zIndex: 1 }}
                 size="large"
               >
-                <Title level={5} style={{ margin: 0, color: "#2c3e50" }}>
-                  📞 Make a Call
-                </Title>
+                <div style={{ textAlign: "center", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      width: "70px",
+                      height: "70px",
+                      borderRadius: "50%",
+                      background: "rgb(2 179 144)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 16px",
+                      backdropFilter: "blur(15px)",
+                      border: "3px solid rgba(255,255,255,0.4)",
+                      // boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+                      animation: "pulse 2s infinite",
+                    }}
+                  >
+                    <PhoneFilled style={{ fontSize: "28px", color: "#fff" }} />
+                  </div>
+                  <Title
+                    level={3}
+                    style={{
+                      margin: 0,
+                      color: "rgb(31 31 31)",
+                      fontWeight: "700",
+                      // textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    Make a Call
+                  </Title>
+                  <Text
+                    style={{
+                      color: "rgb(143 143 143)",
+                      fontSize: "15px",
+                      fontWeight: "500",
+                      // textShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    Connect with anyone worldwide
+                  </Text>
+                </div>
+
                 <Space.Compact style={{ width: "100%" }}>
                   <Input
                     size="large"
-                    prefix={<NumberOutlined style={{ color: "#667eea" }} />}
+                    // prefix={<PhoneFilled style={{ color: "#667eea" }} />}
                     placeholder="+91XXXXXXXXXX or client:alice"
                     value={to}
                     onChange={(e) => setTo(e.target.value)}
-                    style={{ borderRadius: "8px 0 0 8px" }}
+                    style={{
+                      borderRadius: "8px 0px 0px 8px",
+                      border: "1px solid #1f1f1f24",
+                      // boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                      fontSize: "16px",
+                      background: "rgba(255, 255, 255, 0.95)",
+                    }}
                   />
-                  <Tooltip title="Make Call">
+                  <Tooltip title={activeCall ? "End Call" : "Make Call"}>
                     <Button
                       size="large"
                       type="primary"
                       icon={<PhoneFilled />}
-                      onClick={makeCall}
-                      disabled={!ready || !to}
+                      onClick={activeCall ? hangup : makeCall}
+                      disabled={activeCall ? false : !ready || !to}
                       style={{
-                        borderRadius: "0 8px 8px 0",
-                        background:
-                          "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        borderRadius: "0px 8px 8px 0px",
+                        background: activeCall ? "#ff4d4f" : "#02b390",
                         border: "none",
+                        color: "#fff",
+                        fontWeight: "700",
+                        fontSize: "16px",
                         transition: "all 0.3s ease",
                       }}
-                      onMouseEnter={(e) => {
-                        if (ready && to) {
-                          e.currentTarget.style.transform = "scale(1.05)";
-                          e.currentTarget.style.boxShadow =
-                            "0 4px 15px rgba(102, 126, 234, 0.4)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
                     >
-                      Call
+                      {activeCall ? "End Call" : "Call"}
                     </Button>
                   </Tooltip>
                 </Space.Compact>
 
-                <Space>
-                  <Tooltip title="End Call">
-                    <Button
-                      size="large"
-                      danger
-                      icon={<PhoneOutlined />}
-                      onClick={hangup}
-                      disabled={!activeCall}
-                      style={{ borderRadius: 8 }}
-                    >
-                      End Call
-                    </Button>
-                  </Tooltip>
-                </Space>
-
-                <Space wrap>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   <Button
                     icon={muted ? <PauseOutlined /> : <CaretRightOutlined />}
                     disabled={!activeCall}
                     onClick={toggleMute}
                     style={{
-                      borderRadius: 8,
-                      background: muted ? "#ff4d4f" : "#52c41a",
-                      borderColor: muted ? "#ff4d4f" : "#52c41a",
+                      borderRadius: "8px",
+                      background: muted ? "#ff4d4f" : "rgb(2, 179, 144)",
+                      border: "none",
                       color: "#fff",
+                      fontWeight: "500",
+                      height: "40px",
+                      padding: "0 16px",
+                      fontSize: "14px",
                     }}
                   >
-                    {muted ? "🔇 Unmute" : "🔊 Mute"}
+                    {muted ? "Unmute" : "Mute"}
                   </Button>
-                  <Button
-                    icon={<NumberOutlined />}
-                    disabled={!activeCall}
-                    onClick={() => setKeypadOpen(true)}
-                    style={{ borderRadius: 8 }}
+
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <Button
+                      icon={<NumberOutlined />}
+                      disabled={!activeCall}
+                      onClick={() => setKeypadOpen(true)}
+                      style={{
+                        borderRadius: "8px",
+                        background: "rgb(220 220 220)",
+
+                        color: "rgb(31 31 31)",
+                        fontWeight: "500",
+                        flex: 1,
+                        height: "40px",
+                        padding: "0 12px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Keypad
+                    </Button>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      onClick={refreshDevices}
+                      style={{
+                        background: "rgb(2 179 144 / 26%)",
+                        border: "none",
+                        color: "rgb(2 179 144)",
+                        fontWeight: "500",
+                        flex: 1,
+                        height: "40px",
+                        borderRadius: "8px",
+                        padding: "0 12px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Devices
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Status Indicator */}
+                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 12px",
+                    }}
                   >
-                    ⌨️ Keypad / DTMF
-                  </Button>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={refreshDevices}
-                    style={{ borderRadius: 8 }}
-                  >
-                    🔄 Refresh Devices
-                  </Button>
-                </Space>
+                    <div
+                      style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: ready ? "rgb(2 179 144)" : "#ff4d4f",
+                        animation: ready ? "pulse 2s infinite" : "none",
+                      }}
+                    />
+                    <Text
+                      style={{
+                        color: ready ? "rgb(2 179 144)" : "#ff4d4f",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {ready ? "Ready to Call" : "Connecting..."}
+                    </Text>
+                  </div>
+                </div>
               </Space>
             </Card>
           </Col>
-
           {/* SMS Section */}
-          <Col xs={24} lg={12} xl={8}>
+          <Col xs={24} lg={12} xl={9}>
             <Card
               size="large"
               style={{
-                borderRadius: 16,
+                borderRadius: 12,
+                background: "#FFF",
+                // border: "1px solid #e1e8ff",
+                boxShadow: "none",
                 transition: "all 0.3s ease",
                 transform: "translateY(0)",
-                animation: "slideInUp 0.6s ease-out 0.1s both",
+                animation: "slideInUp 0.6s ease-out 0.4s both",
                 height: "100%",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+              bordered={false}
+              styles={{
+                body: {
+                  padding: "15px",
+                },
               }}
             >
-              <Title level={5} style={{ marginTop: 0 }}>
-                📱 Send SMS
-              </Title>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                  paddingBottom: "12px",
+                  borderBottom: "2px solid #e1e8ff",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      // background: "#02b390",
+                      border: "1px solid rgb(2, 179, 144)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      // boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    <MessageOutlined
+                      style={{ color: "rgb(2, 179, 144)", fontSize: "18px" }}
+                    />
+                  </div>
+                  <Flex align="start" vertical>
+                    <Title level={5} style={{ margin: 0, color: "#2c3e50" }}>
+                      Send SMS
+                    </Title>
+                  </Flex>
+                </div>
+              </div>
               <Space
                 direction="vertical"
                 style={{ width: "100%" }}
@@ -558,55 +913,39 @@ export default function App() {
                   placeholder="Enter your SMS message here..."
                   value={smsBody}
                   onChange={(e) => setSmsBody(e.target.value)}
-                  rows={4}
+                  rows={2}
                   style={{ borderRadius: 8 }}
                 />
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={sendSMS}
-                  disabled={!smsBody.trim() || !to}
-                  icon={<SoundOutlined />}
-                  style={{ borderRadius: 8 }}
-                >
-                  Send SMS
-                </Button>
-              </Space>
-            </Card>
-          </Col>
 
-          {/* Devices */}
-          <Col xs={24} lg={12} xl={8}>
-            <Card
-              size="large"
-              style={{
-                borderRadius: 16,
-                transition: "all 0.3s ease",
-                transform: "translateY(0)",
-                animation: "slideInUp 0.6s ease-out 0.2s both",
-                height: "100%",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
-              }}
-            >
-              <Title level={5} style={{ marginTop: 0 }}>
-                Devices
-              </Title>
+                <Flex align="center" justify="end">
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={sendSMS}
+                    disabled={!smsBody.trim() || !to}
+                    icon={<SoundOutlined />}
+                    style={{ borderRadius: 8 }}
+                  >
+                    Send SMS
+                  </Button>
+                </Flex>
+              </Space>
+              <Divider />
+
               <Space
                 direction="vertical"
                 size="middle"
                 style={{ width: "100%" }}
               >
-                <Space style={{ width: "100%" }} direction="vertical">
-                  <Text strong>
-                    <AudioTwoTone twoToneColor="#1677ff" /> Microphone
-                  </Text>
+                <Space
+                  style={{ width: "100%", padding: "0px 20px" }}
+                  direction="horizontal"
+                >
+                  <div style={{ width: "110px", textAlign: "left" }}>
+                    <Text strong>
+                      <AudioTwoTone twoToneColor="#1677ff" /> Microphone
+                    </Text>
+                  </div>
                   <Select
                     value={micId}
                     style={{ width: "100%" }}
@@ -619,12 +958,15 @@ export default function App() {
                   />
                 </Space>
 
-                <Divider style={{ margin: "8px 0" }} />
-
-                <Space style={{ width: "100%" }} direction="vertical">
-                  <Text strong>
-                    <SoundTwoTone twoToneColor="#52c41a" /> Speaker
-                  </Text>
+                <Space
+                  style={{ width: "100%", padding: "0px 20px" }}
+                  direction="horizontal"
+                >
+                  <div style={{ width: "110px", textAlign: "left" }}>
+                    <Text strong>
+                      <SoundTwoTone twoToneColor="#52c41a" /> Speaker
+                    </Text>
+                  </div>
                   <Select
                     value={spkId}
                     style={{ width: "100%" }}
@@ -635,33 +977,38 @@ export default function App() {
                     }))}
                     onChange={applySpeaker}
                   />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tip: Some browsers need a user gesture (click) before
-                    changing output device takes effect.
-                  </Text>
                 </Space>
+                <Flex justify="center">
+                  {" "}
+                  <div style={{ maxWidth: "380px" }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Tip: Some browsers need a user gesture (click) before
+                      changing output device takes effect.
+                    </Text>
+                  </div>
+                </Flex>
               </Space>
             </Card>
           </Col>
 
-          {/* Call Logs Section */}
-          <Col xs={12} lg={12} xl={12}>
+          <Col xs={24} lg={12} xl={9}>
             <Card
               size="large"
               style={{
-                borderRadius: 16,
+                borderRadius: 12,
+                background: "#FFF",
+                // border: "1px solid #e1e8ff",
+                boxShadow: "none",
                 transition: "all 0.3s ease",
                 transform: "translateY(0)",
-                animation: "slideInUp 0.6s ease-out 0.3s both",
+                animation: "slideInUp 0.6s ease-out 0.4s both",
                 height: "100%",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+              bordered={false}
+              styles={{
+                body: {
+                  padding: "15px",
+                },
               }}
             >
               <div
@@ -669,14 +1016,150 @@ export default function App() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "12px",
+                  marginBottom: "16px",
+                  paddingBottom: "12px",
+                  borderBottom: "2px solid #e1e8ff",
                 }}
               >
-                <Title level={5} style={{ margin: 0 }}>
-                  📞 Call History
-                </Title>
-                <Button
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      border: "1px solid rgb(2, 179, 144)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      // boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    <OrderedListOutlined
+                      style={{ color: "rgb(2, 179, 144)", fontSize: "18px" }}
+                    />
+                  </div>
+                  <Flex align="start" vertical>
+                    <Title level={5} style={{ margin: 0, color: "#2c3e50" }}>
+                      Logs
+                    </Title>
+                  </Flex>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  maxHeight: "340px",
+                  overflowY: "auto",
+                  border: "1px solid #f0f0f0",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  background: "#fafafa",
+                }}
+              >
+                <List
                   size="small"
+                  dataSource={logs}
+                  renderItem={(item) => (
+                    <List.Item
+                      style={{
+                        padding: "8px 12px",
+                        borderBottom: "1px solid #f0f0f0",
+                        borderRadius: "4px",
+                        marginBottom: "2px",
+                        transition: "all 0.2s ease",
+                        background: "#fff",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#f0f8ff";
+                        e.currentTarget.style.transform = "translateX(2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#fff";
+                        e.currentTarget.style.transform = "translateX(0)";
+                      }}
+                    >
+                      <Text
+                        code
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          fontSize: "12px",
+                          color: "#333",
+                          fontFamily: "Monaco, Menlo, 'Ubuntu Mono', monospace",
+                        }}
+                      >
+                        {item}
+                      </Text>
+                    </List.Item>
+                  )}
+                  locale={{ emptyText: "No logs yet." }}
+                />
+              </div>
+            </Card>
+          </Col>
+          <Col xs={12} lg={12} xl={12}>
+            <Card
+              size="large"
+              style={{
+                borderRadius: 12,
+                background: "#FFF",
+                // border: "1px solid #e1e8ff",
+                boxShadow: "none",
+                transition: "all 0.3s ease",
+                transform: "translateY(0)",
+                animation: "slideInUp 0.6s ease-out 0.4s both",
+                height: "100%",
+              }}
+              bordered={false}
+              styles={{
+                body: {
+                  padding: "15px",
+                },
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                  paddingBottom: "12px",
+                  borderBottom: "2px solid #e1e8ff",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      // background: "#02b390",
+                      border: "1px solid rgb(2, 179, 144)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      // boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    <PhoneFilled
+                      style={{ color: "rgb(2, 179, 144)", fontSize: "18px" }}
+                    />
+                  </div>
+                  <Flex align="start" vertical>
+                    <Title level={5} style={{ margin: 0, color: "#2c3e50" }}>
+                      Call History
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      {callLogs.length} messages
+                    </Text>
+                  </Flex>
+                </div>
+                <Button
+                  // size="small"
+
                   icon={<ReloadOutlined />}
                   onClick={() => {
                     // Refresh call logs
@@ -695,7 +1178,13 @@ export default function App() {
                         pushLog("Failed to refresh call history");
                       });
                   }}
-                  style={{ borderRadius: "20px" }}
+                  style={{
+                    borderRadius: "8px",
+                    background: "#02b390",
+                    border: "none",
+                    color: "#fff",
+                    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+                  }}
                 >
                   Refresh
                 </Button>
@@ -780,89 +1269,344 @@ export default function App() {
               </div>
             </Card>
           </Col>
-
-          {/* Logs */}
           <Col xs={12} lg={12} xl={12}>
             <Card
               size="large"
               style={{
-                borderRadius: 16,
+                borderRadius: 12,
+                background: "#FFF",
+                // border: "1px solid #e1e8ff",
+                boxShadow: "none",
                 transition: "all 0.3s ease",
                 transform: "translateY(0)",
                 animation: "slideInUp 0.6s ease-out 0.4s both",
                 height: "100%",
-                maxHeightL: "400px",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+              bordered={false}
+              styles={{
+                body: {
+                  padding: "15px",
+                },
               }}
             >
-              <Title level={5} style={{ marginTop: 0 }}>
-                📋 Logs
-              </Title>
               <div
                 style={{
-                  maxHeight: "500px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                  paddingBottom: "12px",
+                  borderBottom: "2px solid #e1e8ff",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      // background: "#02b390",
+                      border: "1px solid rgb(2, 179, 144)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      // boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    <MessageOutlined
+                      style={{ color: "rgb(2, 179, 144)", fontSize: "18px" }}
+                    />
+                  </div>
+                  <Flex align="start" vertical>
+                    <Title level={5} style={{ margin: 0, color: "#2c3e50" }}>
+                      Message History
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      {messageLogs.length} messages
+                    </Text>
+                  </Flex>
+                </div>
+                <Button
+                  // size="small"
+                  variant="dashed"
+                  icon={<ReloadOutlined />}
+                  onClick={fetchLogs}
+                  style={{
+                    borderRadius: "8px",
+                    background: "#02b390",
+                    border: "none",
+                    color: "#fff",
+                    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+                  }}
+                >
+                  Refresh
+                </Button>
+              </div>
+              <div
+                style={{
+                  maxHeight: "400px",
                   overflowY: "auto",
-                  border: "1px solid #f0f0f0",
-                  borderRadius: "8px",
-                  padding: "8px",
-                  background: "#fafafa",
+                  borderRadius: "12px",
+                  // background: "#fff",
+                  // border: "1px solid #f0f0f0",
                 }}
               >
                 <List
                   size="small"
-                  dataSource={logs}
-                  renderItem={(item) => (
+                  dataSource={messageLogs}
+                  renderItem={(msg, index) => (
                     <List.Item
                       style={{
-                        padding: "8px 12px",
-                        borderBottom: "1px solid #f0f0f0",
-                        borderRadius: "4px",
-                        marginBottom: "2px",
-                        transition: "all 0.2s ease",
+                        padding: "16px",
+                        borderBottom: "1px solid #f5f5f5",
+                        borderRadius: "8px",
+                        margin: "8px",
                         background: "#fff",
+                        transition: "all 0.3s ease",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f0f8ff";
-                        e.currentTarget.style.transform = "translateX(2px)";
+                        e.currentTarget.style.background =
+                          "linear-gradient(135deg, #f8f9ff 0%, #e8f4fd 100%)";
+                        e.currentTarget.style.transform = "translateX(4px)";
+                        e.currentTarget.style.boxShadow =
+                          "0 4px 15px rgba(102, 126, 234, 0.15)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "#fff";
                         e.currentTarget.style.transform = "translateX(0)";
+                        e.currentTarget.style.boxShadow =
+                          "0 2px 8px rgba(0,0,0,0.05)";
                       }}
                     >
-                      <Text
-                        code
-                        style={{
-                          whiteSpace: "pre-wrap",
-                          fontSize: "12px",
-                          color: "#333",
-                          fontFamily: "Monaco, Menlo, 'Ubuntu Mono', monospace",
-                        }}
+                      <Space
+                        direction="vertical"
+                        style={{ width: "100%" }}
+                        size="middle"
                       >
-                        {item}
-                      </Text>
+                        {/* Header with From/To and Status */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                          }}
+                        >
+                          <Space size="small">
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "8px",
+                                  height: "8px",
+                                  borderRadius: "50%",
+                                  background:
+                                    msg.status === "delivered"
+                                      ? "#52c41a"
+                                      : msg.status === "failed"
+                                      ? "#ff4d4f"
+                                      : "#1890ff",
+                                  boxShadow: "0 0 8px rgba(0,0,0,0.2)",
+                                }}
+                              />
+                              <Tag
+                                color="blue"
+                                style={{
+                                  borderRadius: "20px",
+                                  padding: "4px 12px",
+                                  fontSize: "12px",
+                                  fontWeight: "500",
+                                }}
+                              >
+                                📤 {msg.from}
+                              </Tag>
+                            </div>
+                            <Text
+                              strong
+                              style={{ color: "#667eea", fontSize: "16px" }}
+                            >
+                              →
+                            </Text>
+                            <Tag
+                              color="green"
+                              style={{
+                                borderRadius: "20px",
+                                padding: "4px 12px",
+                                fontSize: "12px",
+                                fontWeight: "500",
+                              }}
+                            >
+                              📥 {msg.to}
+                            </Tag>
+                          </Space>
+                          <Tag
+                            color={
+                              msg.status === "delivered"
+                                ? "success"
+                                : msg.status === "failed"
+                                ? "error"
+                                : "processing"
+                            }
+                            style={{
+                              borderRadius: "20px",
+                              padding: "6px 16px",
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {msg.status === "delivered"
+                              ? "✅ "
+                              : msg.status === "failed"
+                              ? "❌ "
+                              : "⏳ "}
+                            {msg.status}
+                          </Tag>
+                        </div>
+
+                        {/* Message Body */}
+                        <div
+                          style={{
+                            background: "#f8f9fa",
+                            padding: "12px",
+                            borderRadius: "8px",
+                            border: "1px solid #e9ecef",
+                            margin: "8px 0",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: "14px",
+                              color: "#2c3e50",
+                              lineHeight: "1.5",
+                              fontWeight: "400",
+                            }}
+                          >
+                            {msg.body}
+                          </Text>
+                        </div>
+
+                        {/* Footer with Details */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                          }}
+                        >
+                          <Space size="small" wrap>
+                            <Text
+                              type="secondary"
+                              style={{
+                                fontSize: "11px",
+                                background: "#f0f2f5",
+                                padding: "4px 8px",
+                                borderRadius: "12px",
+                                fontWeight: "500",
+                              }}
+                            >
+                              📅 {new Date(msg.dateSent).toLocaleString()}
+                            </Text>
+                            {msg.price && (
+                              <Text
+                                type="secondary"
+                                style={{
+                                  fontSize: "11px",
+                                  background: "#fff2e8",
+                                  padding: "4px 8px",
+                                  borderRadius: "12px",
+                                  fontWeight: "500",
+                                  color: "#d46b08",
+                                }}
+                              >
+                                💰 {msg.price} {msg.priceUnit}
+                              </Text>
+                            )}
+                            {msg.direction && (
+                              <Tag
+                                color={
+                                  msg.direction === "outbound-api"
+                                    ? "blue"
+                                    : "orange"
+                                }
+                                style={{
+                                  borderRadius: "12px",
+                                  fontSize: "10px",
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                {msg.direction === "outbound-api"
+                                  ? "📤 Outbound"
+                                  : "📥 Inbound"}
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
+
+                        {/* SID */}
+                        <Text
+                          type="secondary"
+                          style={{
+                            fontSize: "10px",
+                            fontFamily:
+                              "Monaco, Menlo, 'Ubuntu Mono', monospace",
+                            background: "#f5f5f5",
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            color: "#666",
+                          }}
+                        >
+                          🔑 SID: {msg.sid}
+                        </Text>
+                      </Space>
                     </List.Item>
                   )}
-                  locale={{ emptyText: "No logs yet." }}
+                  locale={{
+                    emptyText: (
+                      <div
+                        style={{ textAlign: "center", padding: "40px 20px" }}
+                      >
+                        <MessageOutlined
+                          style={{
+                            fontSize: "48px",
+                            color: "#d9d9d9",
+                            marginBottom: "16px",
+                          }}
+                        />
+                        <Text type="secondary" style={{ fontSize: "16px" }}>
+                          No messages yet
+                        </Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: "12px" }}>
+                          Send your first message to see it here
+                        </Text>
+                      </div>
+                    ),
+                  }}
                 />
               </div>
             </Card>
           </Col>
+          {/* Logs */}
         </Row>
       </Content>
 
       <Footer
         style={{
           textAlign: "center",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          color: "#fff",
+          background: "rgb(219 219 219)",
+          color: "rgb(0 0 0)",
           padding: "20px",
           height: "80px",
           flexShrink: 0,
@@ -872,10 +1616,10 @@ export default function App() {
         }}
       >
         <Space direction="vertical" size="small">
-          <Text style={{ color: "#fff", fontSize: 16 }}>
+          <Text style={{ color: "rgb(0 0 0)", fontSize: 16 }}>
             🚀 Twilio Voice Hub - Made with 💙 by you
           </Text>
-          <Text style={{ color: "#fff", opacity: 0.8, fontSize: 12 }}>
+          <Text style={{ color: "rgb(0 0 0)", opacity: 0.8, fontSize: 12 }}>
             Powered by React + Ant Design + Twilio Voice SDK
           </Text>
         </Space>
