@@ -622,7 +622,7 @@ export default function App() {
                 className="gradient-border-content"
                 style={{
                   borderRadius: 12,
-                  background: "rgb(255, 255, 255)",
+                  background: "rgb(2 179 144 / 8%)",
                   // border: "none",
                   // boxShadow: "0 12px 40px rgba(102, 126, 234, 0.4)",
                   transition: "all 0.4s ease",
@@ -660,7 +660,7 @@ export default function App() {
                     width: "40px",
                     height: "40px",
                     borderRadius: "50%",
-                    background: "rgba(255,255,255,0.2)",
+                    background: "rgb(2 179 144 / 9%)",
                     backdropFilter: "blur(10px)",
                     animation: "bounce 3s ease-in-out infinite",
                   }}
@@ -673,7 +673,7 @@ export default function App() {
                     width: "30px",
                     height: "30px",
                     borderRadius: "50%",
-                    background: "rgba(255,255,255,0.15)",
+                    background: "rgb(2 179 144 / 9%)",
                     backdropFilter: "blur(10px)",
                     animation: "bounce 4s ease-in-out infinite 1s",
                   }}
