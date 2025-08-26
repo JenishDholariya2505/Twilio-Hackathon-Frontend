@@ -730,16 +730,38 @@ export default function App() {
                   </div>
 
                   <Space.Compact style={{ width: "100%" }}>
-                    <Input
+                    <Select
                       size="large"
-                      // prefix={<PhoneFilled style={{ color: "#667eea" }} />}
-                      placeholder="+91XXXXXXXXXX or client:alice"
+                      options={[
+                        {
+                          label: "+91 7436055117",
+                          value: "+917436055117",
+                        },
+                        {
+                          label: "+91 9313679803",
+                          value: "+919313679803",
+                        },
+                        {
+                          label: "+1 8584141379",
+                          value: "+18584141379",
+                        },
+                        {
+                          label: "+91 6353791329",
+                          value: "+916353791329",
+                        },
+                        {
+                          label: "+91 9687424831",
+                          value: "+919687424831",
+                        },
+                      ]}
+                      prefix={<PhoneFilled style={{ color: "#667eea" }} />}
+                      placeholder="Select a number"
                       value={to}
-                      onChange={(e) => setTo(e.target.value)}
+                      onChange={(e) => setTo(e)}
                       style={{
                         borderRadius: "8px 0px 0px 8px",
                         border: "1px solid #1f1f1f24",
-                        // boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                        width: "100%",
                         fontSize: "16px",
                         background: "rgba(255, 255, 255, 0.95)",
                       }}
