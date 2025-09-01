@@ -51,6 +51,8 @@ export default function App() {
 
   const [status, setStatus] = useState("Connecting…");
   const [to, setTo] = useState("+919687424831"); // default for you 😉 919687424831
+  const [countryCode, setCountryCode] = useState("+91"); // Default country code
+  const [phoneNumber, setPhoneNumber] = useState("9687424831"); // Default phone number without country code
   const [activeCall, setActiveCall] = useState(null);
   const [muted, setMuted] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
@@ -378,6 +380,19 @@ export default function App() {
   useEffect(() => {
     if (to) localStorage.setItem("lastTo", to);
   }, [to]);
+
+  // Initialize phone number from 'to' state
+  // useEffect(() => {
+  //   if (to && to.startsWith("+")) {
+  //     // Extract country code and phone number from 'to' state
+  //     const match = to.match(/^\+(\d{1,4})(\d+)$/);
+  //     if (match) {
+  //       const [, country, phone] = match;
+  //       setCountryCode(`+${country}`);
+  //       setPhoneNumber(phone);
+  //     }
+  //   }
+  // }, []); // Only run once on mount
 
   function hangup() {
     fetchCallLogs();
@@ -870,34 +885,11 @@ export default function App() {
                   </div>
 
                   <Space.Compact style={{ width: "100%" }}>
+                    <small>From</small>
                     <Select
                       size="large"
-                      options={[
-                        {
-                          label: "+91 7436055117",
-                          value: "+917436055117",
-                        },
-                        {
-                          label: "+91 9313679803",
-                          value: "+919313679803",
-                        },
-                        {
-                          label: "+1 8584141379",
-                          value: "+18584141379",
-                        },
-                        {
-                          label: "+91 6353791329",
-                          value: "+916353791329",
-                        },
-                        {
-                          label: "+91 9687424831",
-                          value: "+919687424831",
-                        },
-                      ]}
-                      prefix={<PhoneFilled style={{ color: "#667eea" }} />}
-                      placeholder="Select a number"
-                      value={to}
-                      onChange={(e) => setTo(e)}
+                      options={[{ label: "+1 815 396 5675", value: "123" }]}
+                      defaultValue={"123"}
                       style={{
                         borderRadius: "8px 0px 0px 8px",
                         border: "1px solid #1f1f1f24",
@@ -906,28 +898,95 @@ export default function App() {
                         background: "rgba(255, 255, 255, 0.95)",
                       }}
                     />
-                    <Tooltip title={activeCall ? "End Call" : "Make Call"}>
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<PhoneFilled />}
-                        onClick={activeCall ? hangup : makeCall}
-                        disabled={activeCall ? false : !ready || !to}
-                        style={{
-                          borderRadius: "0px 8px 8px 0px",
-                          background: activeCall ? "#ff4d4f" : "#02b390",
-                          border: "none",
-                          color: "#fff",
-                          fontWeight: "700",
-                          fontSize: "16px",
-                          transition: "all 0.3s ease",
-                        }}
-                      >
-                        {activeCall ? "End Call" : "Call"}
-                      </Button>
-                    </Tooltip>
                   </Space.Compact>
-
+                  <Space.Compact style={{ width: "100%" }}>
+                    <small>To</small>
+                    <Flex>
+                      {" "}
+                      <Select
+                        size="large"
+                        options={[
+                          { label: "🇮🇳 +91", value: "+91" },
+                          { label: "🇺🇸 +1", value: "+1" },
+                          { label: "🇬🇧 +44", value: "+44" },
+                          { label: "🇩🇪 +49", value: "+49" },
+                          { label: "🇫🇷 +33", value: "+33" },
+                          { label: "🇮🇹 +39", value: "+39" },
+                          { label: "🇪🇸 +34", value: "+34" },
+                          // { label: "🇨🇦 +1", value: "+1" },
+                          { label: "🇦🇺 +61", value: "+61" },
+                          { label: "🇯🇵 +81", value: "+81" },
+                          { label: "🇰🇷 +82", value: "+82" },
+                          { label: "🇨🇳 +86", value: "+86" },
+                          { label: "🇧🇷 +55", value: "+55" },
+                          { label: "🇷🇺 +7", value: "+7" },
+                          { label: "🇿🇦 +27", value: "+27" },
+                          { label: "🇪🇬 +20", value: "+20" },
+                          { label: "🇳🇬 +234", value: "+234" },
+                          { label: "🇰🇪 +254", value: "+254" },
+                          { label: "🇲🇽 +52", value: "+52" },
+                          { label: "🇦🇷 +54", value: "+54" },
+                        ]}
+                        value={countryCode}
+                        onChange={(value) => {
+                          setCountryCode(value);
+                          const phone = phoneNumber.trim();
+                          if (phone) {
+                            setTo(`${value}${phone}`);
+                          }
+                        }}
+                        style={{
+                          borderRadius: "8px 0px 0px 8px",
+                          border: "1px solid #1f1f1f24",
+                          width: "120px",
+                          fontSize: "16px",
+                          background: "rgba(255, 255, 255, 0.95)",
+                        }}
+                      />
+                      <Input
+                        size="large"
+                        prefix={<PhoneFilled style={{ color: "#667eea" }} />}
+                        placeholder="Enter phone number"
+                        value={phoneNumber}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, "");
+                          setPhoneNumber(value);
+                          if (value.trim()) {
+                            setTo(`${countryCode}${value.trim()}`);
+                          }
+                        }}
+                        style={{
+                          borderRadius: "0px",
+                          border: "1px solid #1f1f1f24",
+                          borderLeft: "none",
+                          borderRight: "none",
+                          flex: 1,
+                          fontSize: "16px",
+                          background: "rgba(255, 255, 255, 0.95)",
+                        }}
+                      />
+                      <Tooltip title={activeCall ? "End Call" : "Make Call"}>
+                        <Button
+                          size="large"
+                          type="primary"
+                          icon={<PhoneFilled />}
+                          onClick={activeCall ? hangup : makeCall}
+                          disabled={activeCall ? false : !ready || !to}
+                          style={{
+                            borderRadius: "0px 8px 8px 0px",
+                            background: activeCall ? "#ff4d4f" : "#02b390",
+                            border: "none",
+                            color: "#fff",
+                            fontWeight: "700",
+                            fontSize: "16px",
+                            transition: "all 0.3s ease",
+                          }}
+                        >
+                          {activeCall ? "End Call" : "Call"}
+                        </Button>
+                      </Tooltip>
+                    </Flex>
+                  </Space.Compact>
                   <div
                     style={{
                       display: "flex",
@@ -991,7 +1050,6 @@ export default function App() {
                       </Button>
                     </div>
                   </div>
-
                   {/* Status Indicator */}
                   <div style={{ textAlign: "center", marginTop: "8px" }}>
                     <div
@@ -1361,7 +1419,7 @@ export default function App() {
               <div style={{ marginBottom: "16px" }}>
                 <Input
                   className="search-input"
-                  placeholder="🔍 Quick search calls..."
+                  placeholder="Quick search calls..."
                   prefix={<SearchOutlined />}
                   value={callFilters.search}
                   onChange={(e) =>
@@ -1654,7 +1712,7 @@ export default function App() {
               <div style={{ marginBottom: "16px" }}>
                 <Input
                   className="search-input"
-                  placeholder="🔍 Quick search messages..."
+                  placeholder="Quick search messages..."
                   prefix={<SearchOutlined />}
                   value={messageFilters.search}
                   onChange={(e) =>
