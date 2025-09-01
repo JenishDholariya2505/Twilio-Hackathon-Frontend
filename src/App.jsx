@@ -885,7 +885,7 @@ export default function App() {
                   </div>
 
                   <Space.Compact style={{ width: "100%" }}>
-                    <small>From</small>
+                    <small>To</small>
                     <Select
                       size="large"
                       options={[{ label: "+1 815 396 5675", value: "123" }]}
@@ -900,7 +900,7 @@ export default function App() {
                     />
                   </Space.Compact>
                   <Space.Compact style={{ width: "100%" }}>
-                    <small>To</small>
+                    <small>From</small>
                     <Flex>
                       {" "}
                       <Select
