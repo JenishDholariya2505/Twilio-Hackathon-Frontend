@@ -11,6 +11,10 @@ import {
   ReloadOutlined,
   SoundOutlined,
   SoundTwoTone,
+  FilterOutlined,
+  SearchOutlined,
+  ClearOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -28,12 +32,17 @@ import {
   Tag,
   Tooltip,
   Typography,
+  DatePicker,
+  Dropdown,
+  Menu,
+  Badge,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { destroyDevice, getDevice } from "./twilioClient";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 export default function App() {
   const deviceRef = useRef(null);
@@ -55,10 +64,141 @@ export default function App() {
   const [callLoading, setCallLoading] = useState(true);
   const [messageLogs, setMessageLogs] = useState([]);
   const [messageLoading, setMessageLoading] = useState(true);
+
+  // Filter states for Message Logs
+  const [messageFilters, setMessageFilters] = useState({
+    search: "",
+    status: "all",
+    direction: "all",
+    dateRange: null,
+  });
+
+  // Filter states for Call Logs
+  const [callFilters, setCallFilters] = useState({
+    search: "",
+    status: "all",
+    dateRange: null,
+    duration: "all",
+  });
+
   const pushLog = (line) =>
     setLogs((prev) =>
       [`${new Date().toLocaleTimeString()}  ${line}`, ...prev].slice(0, 200)
     );
+
+  // Filter functions for Message Logs
+  const getFilteredMessageLogs = () => {
+    return messageLogs.filter((msg) => {
+      // Search filter
+      if (messageFilters.search) {
+        const searchLower = messageFilters.search.toLowerCase();
+        const matchesSearch =
+          msg.from?.toLowerCase().includes(searchLower) ||
+          msg.to?.toLowerCase().includes(searchLower) ||
+          msg.body?.toLowerCase().includes(searchLower) ||
+          msg.sid?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (
+        messageFilters.status !== "all" &&
+        msg.status !== messageFilters.status
+      ) {
+        return false;
+      }
+
+      // Direction filter
+      if (
+        messageFilters.direction !== "all" &&
+        msg.direction !== messageFilters.direction
+      ) {
+        return false;
+      }
+
+      // Date range filter
+      if (messageFilters.dateRange && messageFilters.dateRange.length === 2) {
+        const msgDate = new Date(msg.dateSent);
+        const startDate = messageFilters.dateRange[0].startOf("day");
+        const endDate = messageFilters.dateRange[1].endOf("day");
+        if (msgDate < startDate || msgDate > endDate) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  // Filter functions for Call Logs
+  const getFilteredCallLogs = () => {
+    return callLogs.filter((call) => {
+      // Search filter
+      if (callFilters.search) {
+        const searchLower = callFilters.search.toLowerCase();
+        const matchesSearch =
+          call.from?.toLowerCase().includes(searchLower) ||
+          call.to?.toLowerCase().includes(searchLower) ||
+          call.sid?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (callFilters.status !== "all" && call.status !== callFilters.status) {
+        return false;
+      }
+
+      // Date range filter
+      if (callFilters.dateRange && callFilters.dateRange.length === 2) {
+        const callDate = new Date(call.startTime);
+        const startDate = callFilters.dateRange[0].startOf("day");
+        const endDate = callFilters.dateRange[1].endOf("day");
+        if (callDate < startDate || callDate > endDate) {
+          return false;
+        }
+      }
+
+      // Duration filter
+      if (callFilters.duration !== "all") {
+        const duration = parseInt(call.duration) || 0;
+        switch (callFilters.duration) {
+          case "short":
+            if (duration > 60) return false; // Less than 1 minute
+            break;
+          case "medium":
+            if (duration <= 60 || duration > 300) return false; // 1-5 minutes
+            break;
+          case "long":
+            if (duration <= 300) return false; // More than 5 minutes
+            break;
+          default:
+            break;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  // Clear filters functions
+  const clearMessageFilters = () => {
+    setMessageFilters({
+      search: "",
+      status: "all",
+      direction: "all",
+      dateRange: null,
+    });
+  };
+
+  const clearCallFilters = () => {
+    setCallFilters({
+      search: "",
+      status: "all",
+      dateRange: null,
+      duration: "all",
+    });
+  };
+
   const sendSMS = async () => {
     pushLog("Sending SMS...");
     try {
@@ -1194,29 +1334,115 @@ export default function App() {
                       Call History
                     </Title>
                     <Text type="secondary" style={{ fontSize: "12px" }}>
-                      {callLogs.length} messages
+                      {getFilteredCallLogs().length} calls
                     </Text>
                   </Flex>
                 </div>
-                <Button
-                  // size="small"
-
-                  icon={<ReloadOutlined />}
-                  onClick={() => {
-                    // Refresh call logs
-                    fetchCallLogs();
-                  }}
-                  style={{
-                    borderRadius: "8px",
-                    background: "#02b390",
-                    border: "none",
-                    color: "#fff",
-                    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
-                  }}
-                >
-                  Refresh
-                </Button>
+                <Space>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={() => {
+                      // Refresh call logs
+                      fetchCallLogs();
+                    }}
+                    style={{
+                      borderRadius: "8px",
+                      background: "#02b390",
+                      border: "none",
+                      color: "#fff",
+                      boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    Refresh
+                  </Button>
+                </Space>
               </div>
+              {/* Quick Search Bar */}
+              <div style={{ marginBottom: "16px" }}>
+                <Input
+                  className="search-input"
+                  placeholder="🔍 Quick search calls..."
+                  prefix={<SearchOutlined />}
+                  value={callFilters.search}
+                  onChange={(e) =>
+                    setCallFilters((prev) => ({
+                      ...prev,
+                      search: e.target.value,
+                    }))
+                  }
+                  style={{ borderRadius: "8px" }}
+                  allowClear
+                />
+              </div>
+
+              {/* Filter Summary */}
+              {Object.values(callFilters).some(
+                (v) => v !== "all" && v !== null && v !== ""
+              ) && (
+                <div
+                  className="filter-summary"
+                  style={{ marginBottom: "12px" }}
+                >
+                  <Space wrap size="small">
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      Active filters:
+                    </Text>
+                    {callFilters.status !== "all" && (
+                      <Tag
+                        className="filter-tag"
+                        color="blue"
+                        closable
+                        onClose={() =>
+                          setCallFilters((prev) => ({ ...prev, status: "all" }))
+                        }
+                      >
+                        Status: {callFilters.status}
+                      </Tag>
+                    )}
+                    {callFilters.duration !== "all" && (
+                      <Tag
+                        className="filter-tag"
+                        color="green"
+                        closable
+                        onClose={() =>
+                          setCallFilters((prev) => ({
+                            ...prev,
+                            duration: "all",
+                          }))
+                        }
+                      >
+                        Duration: {callFilters.duration}
+                      </Tag>
+                    )}
+                    {callFilters.dateRange && (
+                      <Tag
+                        className="filter-tag"
+                        color="orange"
+                        closable
+                        onClose={() =>
+                          setCallFilters((prev) => ({
+                            ...prev,
+                            dateRange: null,
+                          }))
+                        }
+                      >
+                        Date: {callFilters.dateRange[0].format("MMM DD")} -{" "}
+                        {callFilters.dateRange[1].format("MMM DD")}
+                      </Tag>
+                    )}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ClearOutlined />}
+                      onClick={clearCallFilters}
+                      style={{ padding: "0 8px", height: "auto" }}
+                    >
+                      Clear All
+                    </Button>
+                  </Space>
+                </div>
+              )}
+
               <div
                 style={{
                   maxHeight: "400px",
@@ -1229,7 +1455,7 @@ export default function App() {
                 <List
                   size="small"
                   loading={callLoading}
-                  dataSource={callLogs}
+                  dataSource={getFilteredCallLogs()}
                   renderItem={(call) => (
                     <List.Item
                       style={{
@@ -1293,7 +1519,58 @@ export default function App() {
                       </Space>
                     </List.Item>
                   )}
-                  locale={{ emptyText: "No call history yet." }}
+                  locale={{
+                    emptyText:
+                      getFilteredCallLogs().length === 0 &&
+                      callLogs.length > 0 ? (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <FilterOutlined
+                            style={{
+                              fontSize: "48px",
+                              color: "#d9d9d9",
+                              marginBottom: "16px",
+                            }}
+                          />
+                          <Text type="secondary" style={{ fontSize: "16px" }}>
+                            No calls match your filters
+                          </Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: "12px" }}>
+                            Try adjusting your search criteria
+                          </Text>
+                          <br />
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={clearCallFilters}
+                            style={{ marginTop: "8px" }}
+                          >
+                            Clear All Filters
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <PhoneFilled
+                            style={{
+                              fontSize: "48px",
+                              color: "#d9d9d9",
+                              marginBottom: "16px",
+                            }}
+                          />
+                          <Text type="secondary" style={{ fontSize: "16px" }}>
+                            No call history yet
+                          </Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: "12px" }}>
+                            Make your first call to see it here
+                          </Text>
+                        </div>
+                      ),
+                  }}
                 />
               </div>
             </Card>
@@ -1353,26 +1630,115 @@ export default function App() {
                       Message History
                     </Title>
                     <Text type="secondary" style={{ fontSize: "12px" }}>
-                      {messageLogs.length} messages
+                      {getFilteredMessageLogs().length} messages
                     </Text>
                   </Flex>
                 </div>
-                <Button
-                  // size="small"
-                  variant="dashed"
-                  icon={<ReloadOutlined />}
-                  onClick={fetchLogs}
-                  style={{
-                    borderRadius: "8px",
-                    background: "#02b390",
-                    border: "none",
-                    color: "#fff",
-                    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
-                  }}
-                >
-                  Refresh
-                </Button>
+                <Space>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchLogs}
+                    style={{
+                      borderRadius: "8px",
+                      background: "#02b390",
+                      border: "none",
+                      color: "#fff",
+                      boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    Refresh
+                  </Button>
+                </Space>
               </div>
+              {/* Quick Search Bar */}
+              <div style={{ marginBottom: "16px" }}>
+                <Input
+                  className="search-input"
+                  placeholder="🔍 Quick search messages..."
+                  prefix={<SearchOutlined />}
+                  value={messageFilters.search}
+                  onChange={(e) =>
+                    setMessageFilters((prev) => ({
+                      ...prev,
+                      search: e.target.value,
+                    }))
+                  }
+                  style={{ borderRadius: "8px" }}
+                  allowClear
+                />
+              </div>
+
+              {/* Filter Summary */}
+              {Object.values(messageFilters).some(
+                (v) => v !== "all" && v !== null && v !== ""
+              ) && (
+                <div
+                  className="filter-summary"
+                  style={{ marginBottom: "12px" }}
+                >
+                  <Space wrap size="small">
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      Active filters:
+                    </Text>
+                    {messageFilters.status !== "all" && (
+                      <Tag
+                        className="filter-tag"
+                        color="blue"
+                        closable
+                        onClose={() =>
+                          setMessageFilters((prev) => ({
+                            ...prev,
+                            status: "all",
+                          }))
+                        }
+                      >
+                        Status: {messageFilters.status}
+                      </Tag>
+                    )}
+                    {messageFilters.direction !== "all" && (
+                      <Tag
+                        className="filter-tag"
+                        color="green"
+                        closable
+                        onClose={() =>
+                          setMessageFilters((prev) => ({
+                            ...prev,
+                            direction: "all",
+                          }))
+                        }
+                      >
+                        Direction: {messageFilters.direction}
+                      </Tag>
+                    )}
+                    {messageFilters.dateRange && (
+                      <Tag
+                        className="filter-tag"
+                        color="orange"
+                        closable
+                        onClose={() =>
+                          setMessageFilters((prev) => ({
+                            ...prev,
+                            dateRange: null,
+                          }))
+                        }
+                      >
+                        Date: {messageFilters.dateRange[0].format("MMM DD")} -{" "}
+                        {messageFilters.dateRange[1].format("MMM DD")}
+                      </Tag>
+                    )}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ClearOutlined />}
+                      onClick={clearMessageFilters}
+                      style={{ padding: "0 8px", height: "auto" }}
+                    >
+                      Clear All
+                    </Button>
+                  </Space>
+                </div>
+              )}
+
               <div
                 style={{
                   maxHeight: "400px",
@@ -1384,7 +1750,7 @@ export default function App() {
               >
                 <List
                   size="small"
-                  dataSource={messageLogs}
+                  dataSource={getFilteredMessageLogs()}
                   loading={messageLoading}
                   renderItem={(msg, index) => (
                     <List.Item
@@ -1603,26 +1969,56 @@ export default function App() {
                     </List.Item>
                   )}
                   locale={{
-                    emptyText: (
-                      <div
-                        style={{ textAlign: "center", padding: "40px 20px" }}
-                      >
-                        <MessageOutlined
-                          style={{
-                            fontSize: "48px",
-                            color: "#d9d9d9",
-                            marginBottom: "16px",
-                          }}
-                        />
-                        <Text type="secondary" style={{ fontSize: "16px" }}>
-                          No messages yet
-                        </Text>
-                        <br />
-                        <Text type="secondary" style={{ fontSize: "12px" }}>
-                          Send your first message to see it here
-                        </Text>
-                      </div>
-                    ),
+                    emptyText:
+                      getFilteredMessageLogs().length === 0 &&
+                      messageLogs.length > 0 ? (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <FilterOutlined
+                            style={{
+                              fontSize: "48px",
+                              color: "#d9d9d9",
+                              marginBottom: "16px",
+                            }}
+                          />
+                          <Text type="secondary" style={{ fontSize: "16px" }}>
+                            No messages match your filters
+                          </Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: "12px" }}>
+                            Try adjusting your search criteria
+                          </Text>
+                          <br />
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={clearMessageFilters}
+                            style={{ marginTop: "8px" }}
+                          >
+                            Clear All Filters
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <MessageOutlined
+                            style={{
+                              fontSize: "48px",
+                              color: "#d9d9d9",
+                              marginBottom: "16px",
+                            }}
+                          />
+                          <Text type="secondary" style={{ fontSize: "16px" }}>
+                            No messages yet
+                          </Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: "12px" }}>
+                            Send your first message to see it here
+                          </Text>
+                        </div>
+                      ),
                   }}
                 />
               </div>
@@ -1735,6 +2131,57 @@ export default function App() {
           </Button>
         </Space>
       </Modal>
+
+      {/* Custom CSS for animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideIn {
+          from {
+            transform: translateX(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        .filter-tag {
+          animation: slideIn 0.3s ease-out;
+        }
+
+        .filter-summary {
+          animation: fadeIn 0.4s ease-out;
+        }
+
+        .search-input {
+          transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+          transform: scale(1.02);
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        .filter-button {
+          transition: all 0.2s ease;
+        }
+
+        .filter-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+      `}</style>
     </Layout>
   );
 }
