@@ -937,109 +937,162 @@ export default function App() {
                     </Text>
                   </div>
 
-                  <Space.Compact style={{ width: "100%" }}>
-                    <small>To</small>
-                    <Select
-                      size="large"
-                      options={[{ label: "+1 815 396 5675", value: "123" }]}
-                      defaultValue={"123"}
-                      style={{
-                        borderRadius: "8px 0px 0px 8px",
-                        border: "1px solid #1f1f1f24",
-                        width: "100%",
-                        fontSize: "16px",
-                        background: "rgba(255, 255, 255, 0.95)",
-                      }}
-                    />
-                  </Space.Compact>
-                  <Space.Compact style={{ width: "100%" }}>
-                    <small>From</small>
-                    <Flex>
-                      {" "}
+                  {/* Call Input Section */}
+                  <div className="call-input-section" style={{ width: "100%" }}>
+                    {/* To Field */}
+                    <div
+                      className="call-input-field"
+                      style={{ marginBottom: "16px" }}
+                    >
+                      <Flex
+                        justify="start"
+                        align="center"
+                        style={{ marginBottom: "8px" }}
+                      >
+                        <Text
+                          strong
+                          style={{ color: "#2c3e50", fontSize: "14px" }}
+                        >
+                          📞 To (Recipient)
+                        </Text>
+                      </Flex>
+
                       <Select
                         size="large"
-                        options={[
-                          { label: "🇮🇳 +91", value: "+91" },
-                          { label: "🇺🇸 +1", value: "+1" },
-                          { label: "🇬🇧 +44", value: "+44" },
-                          { label: "🇩🇪 +49", value: "+49" },
-                          { label: "🇫🇷 +33", value: "+33" },
-                          { label: "🇮🇹 +39", value: "+39" },
-                          { label: "🇪🇸 +34", value: "+34" },
-                          // { label: "🇨🇦 +1", value: "+1" },
-                          { label: "🇦🇺 +61", value: "+61" },
-                          { label: "🇯🇵 +81", value: "+81" },
-                          { label: "🇰🇷 +82", value: "+82" },
-                          { label: "🇨🇳 +86", value: "+86" },
-                          { label: "🇧🇷 +55", value: "+55" },
-                          { label: "🇷🇺 +7", value: "+7" },
-                          { label: "🇿🇦 +27", value: "+27" },
-                          { label: "🇪🇬 +20", value: "+20" },
-                          { label: "🇳🇬 +234", value: "+234" },
-                          { label: "🇰🇪 +254", value: "+254" },
-                          { label: "🇲🇽 +52", value: "+52" },
-                          { label: "🇦🇷 +54", value: "+54" },
-                        ]}
-                        value={countryCode}
-                        onChange={(value) => {
-                          setCountryCode(value);
-                          const phone = phoneNumber.trim();
-                          if (phone) {
-                            setTo(`${value}${phone}`);
-                          }
-                        }}
+                        prefix={<PhoneFilled style={{ color: "#02b390" }} />}
+                        placeholder="Enter phone number (e.g., +919876543210)"
+                        options={[{ label: "+1 815 396 5675", value: "123" }]}
+                        defaultValue={"123"}
                         style={{
-                          borderRadius: "8px 0px 0px 8px",
-                          border: "1px solid #1f1f1f24",
-                          width: "120px",
+                          borderRadius: "8px",
+                          border: "1px solid #e1e8ff",
                           fontSize: "16px",
+                          width: "100%",
                           background: "rgba(255, 255, 255, 0.95)",
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                         }}
+                        allowClear
                       />
-                      <Input
-                        size="large"
-                        prefix={<PhoneFilled style={{ color: "#667eea" }} />}
-                        placeholder="Enter phone number"
-                        value={phoneNumber}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, "");
-                          setPhoneNumber(value);
-                          if (value.trim()) {
-                            setTo(`${countryCode}${value.trim()}`);
-                          }
-                        }}
-                        style={{
-                          borderRadius: "0px",
-                          border: "1px solid #1f1f1f24",
-                          borderLeft: "none",
-                          borderRight: "none",
-                          flex: 1,
-                          fontSize: "16px",
-                          background: "rgba(255, 255, 255, 0.95)",
-                        }}
-                      />
-                      <Tooltip title={activeCall ? "End Call" : "Make Call"}>
-                        <Button
-                          size="large"
-                          type="primary"
-                          icon={<PhoneFilled />}
-                          onClick={activeCall ? hangup : makeCall}
-                          disabled={activeCall ? false : !ready || !to}
-                          style={{
-                            borderRadius: "0px 8px 8px 0px",
-                            background: activeCall ? "#ff4d4f" : "#02b390",
-                            border: "none",
-                            color: "#fff",
-                            fontWeight: "700",
-                            fontSize: "16px",
-                            transition: "all 0.3s ease",
-                          }}
+                    </div>
+
+                    {/* From Field */}
+                    <div
+                      className="call-input-field"
+                      style={{ marginBottom: "20px" }}
+                    >
+                      <Flex
+                        align="center"
+                        justify="start"
+                        style={{ marginBottom: "8px" }}
+                      >
+                        <Text
+                          strong
+                          style={{ color: "#2c3e50", fontSize: "14px" }}
                         >
-                          {activeCall ? "End Call" : "Call"}
-                        </Button>
-                      </Tooltip>
-                    </Flex>
-                  </Space.Compact>
+                          📱 From (Your Number)
+                        </Text>
+                      </Flex>
+                      <Flex gap={0} style={{ width: "100%" }}>
+                        <Input
+                          size="large"
+                          prefix={
+                            <Select
+                              className="country-code-selector"
+                              size="small"
+                              popupMatchSelectWidth={false}
+                              options={[
+                                { label: "🇮🇳 +91", value: "+91" },
+                                { label: "🇺🇸 +1", value: "+1" },
+                                { label: "🇬🇧 +44", value: "+44" },
+                                { label: "🇩🇪 +49", value: "+49" },
+                                { label: "🇫🇷 +33", value: "+33" },
+                                { label: "🇮🇹 +39", value: "+39" },
+                                { label: "🇪🇸 +34", value: "+34" },
+                                { label: "🇦🇺 +61", value: "+61" },
+                                { label: "🇯🇵 +81", value: "+81" },
+                                { label: "🇰🇷 +82", value: "+82" },
+                                { label: "🇨🇳 +86", value: "+86" },
+                                { label: "🇧🇷 +55", value: "+55" },
+                                { label: "🇷🇺 +7", value: "+7" },
+                                {
+                                  label: "🇿🇦 +27",
+                                  value: "+27",
+                                },
+                                { label: "🇪🇬 +20", value: "+20" },
+                                { label: "🇳🇬 +234", value: "+234" },
+                                { label: "🇰🇪 +254", value: "+254" },
+                                { label: "🇲🇽 +52", value: "+52" },
+                                { label: "🇦🇷 +54", value: "+54" },
+                              ]}
+                              value={countryCode}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              onChange={(value) => {
+                                setCountryCode(value);
+                                const phone = phoneNumber.trim();
+                                if (phone) {
+                                  setTo(`${value}${phone}`);
+                                }
+                              }}
+                              variant="borderless"
+                              style={{
+                                width: "110px",
+                                fontSize: "14px",
+                              }}
+                            />
+                          }
+                          placeholder="Your phone number"
+                          value={phoneNumber}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, "");
+                            setPhoneNumber(value);
+                            if (value.trim()) {
+                              setTo(`${countryCode}${value.trim()}`);
+                            }
+                          }}
+                          style={{
+                            borderRadius: "8px 0px 0px 8px",
+                            border: "1px solid #e1e8ff",
+                            borderLeft: "none",
+                            borderRight: "none",
+                            flex: 1,
+                            fontSize: "16px",
+                            background: "rgba(255, 255, 255, 0.95)",
+                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+                          }}
+                        />
+                        <Tooltip title={activeCall ? "End Call" : "Make Call"}>
+                          <Button
+                            className="call-button"
+                            size="large"
+                            type="primary"
+                            icon={<PhoneFilled />}
+                            onClick={activeCall ? hangup : makeCall}
+                            disabled={activeCall ? false : !ready || !to}
+                            style={{
+                              borderRadius: "0px 8px 8px 0px",
+                              background: activeCall ? "#ff4d4f" : "#02b390",
+                              border: "none",
+                              color: "#fff",
+                              fontWeight: "700",
+                              fontSize: "16px",
+                              transition: "all 0.3s ease",
+                              boxShadow: "0 4px 12px rgba(2, 179, 144, 0.3)",
+                            }}
+                          >
+                            {activeCall ? "End Call" : "Call"}
+                          </Button>
+                        </Tooltip>
+                      </Flex>
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: "12px", marginTop: "4px" }}
+                      >
+                        Select your country code and enter your phone number
+                      </Text>
+                    </div>
+                  </div>
                   <div
                     style={{
                       display: "flex",
@@ -2205,31 +2258,6 @@ export default function App() {
           {/* Logs */}
         </Row>
       </Content>
-
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "rgb(219 219 219)",
-          color: "rgb(0 0 0)",
-          padding: "20px",
-          zIndex: 99,
-          boxShadow: "rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
-          height: "80px",
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Space direction="vertical" size="small">
-          <Text style={{ color: "rgb(0 0 0)", fontSize: 16 }}>
-            🚀 Twilio Voice Hub - Made with 💙 by you
-          </Text>
-          <Text style={{ color: "rgb(0 0 0)", opacity: 0.8, fontSize: 12 }}>
-            Powered by React + Ant Design + Twilio Voice SDK
-          </Text>
-        </Space>
-      </Footer>
 
       {/* Keypad / DTMF */}
       <Modal

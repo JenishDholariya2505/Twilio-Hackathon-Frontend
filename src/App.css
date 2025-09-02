@@ -104,3 +104,50 @@
   box-shadow: 0 0 0 2px rgba(2, 179, 144, 0.2) !important;
   border-color: #02b390 !important;
 }
+
+/* Call Input Section Styling */
+.call-input-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e1e8ff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.call-input-field {
+  transition: all 0.3s ease;
+}
+
+.call-input-field:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+}
+
+.call-input-field:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(2, 179, 144, 0.15);
+}
+
+/* Country code selector styling */
+.country-code-selector {
+  transition: all 0.3s ease;
+}
+
+.country-code-selector:hover {
+  border-color: #02b390;
+  transform: scale(1.02);
+}
+
+/* Call button styling */
+.call-button {
+  transition: all 0.3s ease;
+}
+
+.call-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 179, 144, 0.4);
+}
+
+.call-button:active:not(:disabled) {
+  transform: translateY(0);
+}
