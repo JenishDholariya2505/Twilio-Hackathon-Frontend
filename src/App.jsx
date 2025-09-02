@@ -66,6 +66,7 @@ export default function App() {
   const [callLoading, setCallLoading] = useState(true);
   const [messageLogs, setMessageLogs] = useState([]);
   const [messageLoading, setMessageLoading] = useState(true);
+  const [isRefreshingDevices, setIsRefreshingDevices] = useState(false);
 
   // Filter states for Message Logs
   const [messageFilters, setMessageFilters] = useState({
@@ -377,6 +378,44 @@ export default function App() {
     const last = localStorage.getItem("lastTo");
     if (last) setTo(last);
   }, []);
+
+  // Auto-detect device changes (add/remove)
+  useEffect(() => {
+    const handleDeviceChange = () => {
+      pushLog("🔄 Device list changed, refreshing...");
+      refreshDevices();
+    };
+
+    // Listen for device changes
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener(
+        "devicechange",
+        handleDeviceChange
+      );
+      pushLog("✅ Device change detection enabled");
+    } else {
+      pushLog("⚠️ Device change detection not supported in this browser");
+    }
+
+    // Fallback: Periodic device check for browsers without devicechange support
+    const intervalId = setInterval(() => {
+      refreshDevices();
+    }, 10000); // Check every 10 seconds
+
+    // Cleanup
+    return () => {
+      if (
+        navigator.mediaDevices &&
+        navigator.mediaDevices.removeEventListener
+      ) {
+        navigator.mediaDevices.removeEventListener(
+          "devicechange",
+          handleDeviceChange
+        );
+      }
+      clearInterval(intervalId);
+    };
+  }, []);
   useEffect(() => {
     if (to) localStorage.setItem("lastTo", to);
   }, [to]);
@@ -451,16 +490,38 @@ export default function App() {
 
   async function refreshDevices() {
     try {
+      setIsRefreshingDevices(true);
       // Use enumerateDevices for better labels
       const devices = await navigator.mediaDevices.enumerateDevices();
       const mics = devices.filter((d) => d.kind === "audioinput");
       const spks = devices.filter((d) => d.kind === "audiooutput");
+
+      // Check if current devices are still available
+      const currentMicStillAvailable = mics.some(
+        (mic) => mic.deviceId === micId
+      );
+      const currentSpkStillAvailable = spks.some(
+        (spk) => spk.deviceId === spkId
+      );
+
       setMicList(mics);
       setSpkList(spks);
-      if (!micId && mics[0]) setMicId(mics[0].deviceId);
-      if (!spkId && spks[0]) setSpkId(spks[0].deviceId);
+
+      // Auto-select first available device if current one is no longer available
+      if (!micId && mics[0]) {
+        setMicId(mics[0].deviceId);
+      } else if (!currentMicStillAvailable && mics[0]) {
+        setMicId(mics[0].deviceId);
+      }
+
+      if (!spkId && spks[0]) {
+        setSpkId(spks[0].deviceId);
+      } else if (!currentSpkStillAvailable && spks[0]) {
+        setSpkId(spks[0].deviceId);
+      }
     } catch (e) {
-      pushLog(`enumerateDevices failed: ${e.message || e}`);
+    } finally {
+      setIsRefreshingDevices(false);
     }
   }
 
@@ -493,9 +554,6 @@ export default function App() {
     try {
       // Twilio SDK input change
       await deviceRef.current?.audio?.setInputDevice?.(id);
-      pushLog(
-        `Mic set: ${shortLabel(micList.find((x) => x.deviceId === id)?.label)}`
-      );
     } catch (e) {
       pushLog(`Mic set failed: ${e.message || e}`);
     }
@@ -506,11 +564,6 @@ export default function App() {
     try {
       // Twilio SDK speaker change (expects an array)
       await deviceRef.current?.audio?.speakerDevices?.set?.([id]);
-      pushLog(
-        `Speaker set: ${shortLabel(
-          spkList.find((x) => x.deviceId === id)?.label
-        )}`
-      );
     } catch (e) {
       pushLog(`Speaker set failed: ${e.message || e}`);
     }
