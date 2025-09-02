@@ -953,7 +953,7 @@ export default function App() {
                           strong
                           style={{ color: "#2c3e50", fontSize: "14px" }}
                         >
-                          📞 To (Recipient)
+                          📞 From (Recipient)
                         </Text>
                       </Flex>
 
@@ -989,7 +989,7 @@ export default function App() {
                           strong
                           style={{ color: "#2c3e50", fontSize: "14px" }}
                         >
-                          📱 From (Your Number)
+                          📱 To (Your Number)
                         </Text>
                       </Flex>
                       <Flex gap={0} style={{ width: "100%" }}>
