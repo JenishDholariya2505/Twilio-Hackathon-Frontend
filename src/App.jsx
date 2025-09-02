@@ -39,6 +39,7 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { destroyDevice, getDevice } from "./twilioClient";
+import NoAccess from "./components/NoAccess";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
@@ -67,6 +68,8 @@ export default function App() {
   const [messageLogs, setMessageLogs] = useState([]);
   const [messageLoading, setMessageLoading] = useState(true);
   const [isRefreshingDevices, setIsRefreshingDevices] = useState(false);
+  const [noDataPage, setNoDataPage] = useState(false);
+  const [fromList, setFromList] = useState({});
 
   // Filter states for Message Logs
   const [messageFilters, setMessageFilters] = useState({
@@ -83,6 +86,7 @@ export default function App() {
     dateRange: null,
     duration: "all",
   });
+  console.log(fromList?.available_from_numbers, "fromList");
 
   const pushLog = (line) =>
     setLogs((prev) =>
@@ -573,64 +577,68 @@ export default function App() {
     return label || "Default";
   }
 
-  const columns = [
-    {
-      title: "SID",
-      dataIndex: "sid",
-      key: "sid",
-      ellipsis: true,
-    },
-    {
-      title: "From",
-      dataIndex: "from",
-      key: "from",
-    },
-    {
-      title: "To",
-      dataIndex: "to",
-      key: "to",
-    },
-    {
-      title: "Body",
-      dataIndex: "body",
-      key: "body",
-      ellipsis: true,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        let color =
-          status === "delivered"
-            ? "green"
-            : status === "failed"
-            ? "red"
-            : "blue";
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
-      },
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      key: "price",
-      render: (price, record) => (
-        <span>
-          {price} {record.priceUnit}
-        </span>
-      ),
-    },
-    {
-      title: "Date Sent",
-      dataIndex: "dateSent",
-      key: "dateSent",
-      render: (text) => new Date(text).toLocaleString(),
-    },
-  ];
-
   const ready = /Ready/i.test(status);
 
-  return (
+  const user = localStorage.getItem("userdata")
+    ? JSON.parse(localStorage.getItem("userdata"))
+    : null;
+
+  useEffect(() => {
+    if (!localStorage.getItem("userdata")) {
+      setNoDataPage(true);
+    } else {
+      setNoDataPage(false);
+    }
+    return () => {};
+  }, [localStorage.getItem("userdata")]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    setNoDataPage(true);
+  };
+  console.log(window.location?.hostname === "localhost", "process");
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch(
+        `${
+          window.location?.hostname === "localhost"
+            ? "http://localhost:3001"
+            : "https://aidev.ergodeapps.com/twilio"
+        }/token-generator`,
+        {
+          method: "GET", // or "POST", "PUT", "DELETE"
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(
+              "access_auth_token"
+            )}`, // if auth needed
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setFromList(data || {});
+
+      return data;
+    } catch (error) {
+      setFromList({});
+      console.error("❌ Fetch Error:", error);
+    }
+  };
+  useEffect(() => {
+    fetchData();
+    return () => {};
+  }, []);
+  return noDataPage ? (
+    <div>
+      <NoAccess />
+    </div>
+  ) : (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       <Header
         style={{
@@ -779,34 +787,75 @@ export default function App() {
             </Text>
           </div>
 
-          {/* Time Display */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 12px",
-              borderRadius: "16px",
-              background: "rgba(255,255,255,0.15)",
-              // border: "1px solid rgba(255,255,255,0.3)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <Text
+          {/* User Info & Logout */}
+          {user && (
+            <div
               style={{
-                color: "#fff",
-                fontSize: "12px",
-                fontWeight: "500",
-                margin: 0,
-                textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "8px 16px",
+                borderRadius: "20px",
+                background: "rgba(2, 179, 144, 0.2)",
+                border: "1px solid rgba(2, 179, 144, 0.4)",
+                backdropFilter: "blur(10px)",
               }}
             >
-              {new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </Text>
-          </div>
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  background:
+                    "linear-gradient(135deg, #02b390 0%, #667eea 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                }}
+              >
+                {user.displayName
+                  ? user.displayName.charAt(0).toUpperCase()
+                  : "U"}
+              </div>
+              <Flex vertical align="start" justify="start">
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    display: "block",
+                  }}
+                >
+                  {user.displayName || "User"}
+                </Text>
+                <Text
+                  style={{
+                    color: "#bfbfbf",
+                    fontSize: "11px",
+                    display: "block",
+                  }}
+                >
+                  {user.email}
+                </Text>
+              </Flex>
+              <Button
+                type="text"
+                size="small"
+                onClick={handleLogout}
+                style={{
+                  color: "#ff4d4f",
+                  padding: "4px 8px",
+                  height: "24px",
+                  fontSize: "12px",
+                }}
+              >
+                Logout
+              </Button>
+            </div>
+          )}
         </Space>
       </Header>
 
@@ -961,8 +1010,9 @@ export default function App() {
                         size="large"
                         prefix={<PhoneFilled style={{ color: "#02b390" }} />}
                         placeholder="Enter phone number (e.g., +919876543210)"
-                        options={[{ label: "+1 815 396 5675", value: "123" }]}
-                        defaultValue={"123"}
+                        options={fromList?.available_from_numbers?.calls?.map(
+                          (item) => ({ label: item?.name, value: item?.number })
+                        )}
                         style={{
                           borderRadius: "8px",
                           border: "1px solid #e1e8ff",
@@ -1222,7 +1272,11 @@ export default function App() {
                 }}
               >
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
                   <div
                     style={{
@@ -1367,7 +1421,11 @@ export default function App() {
                 }}
               >
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
                   <div
                     style={{
@@ -1474,7 +1532,11 @@ export default function App() {
                 }}
               >
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
                   <div
                     style={{
@@ -1630,7 +1692,10 @@ export default function App() {
                         color="blue"
                         closable
                         onClose={() =>
-                          setCallFilters((prev) => ({ ...prev, status: "all" }))
+                          setCallFilters((prev) => ({
+                            ...prev,
+                            status: "all",
+                          }))
                         }
                         style={{ borderRadius: "12px" }}
                       >
@@ -1755,7 +1820,10 @@ export default function App() {
                       getFilteredCallLogs().length === 0 &&
                       callLogs.length > 0 ? (
                         <div
-                          style={{ textAlign: "center", padding: "40px 20px" }}
+                          style={{
+                            textAlign: "center",
+                            padding: "40px 20px",
+                          }}
                         >
                           <FilterOutlined
                             style={{
@@ -1783,7 +1851,10 @@ export default function App() {
                         </div>
                       ) : (
                         <div
-                          style={{ textAlign: "center", padding: "40px 20px" }}
+                          style={{
+                            textAlign: "center",
+                            padding: "40px 20px",
+                          }}
                         >
                           <PhoneFilled
                             style={{
@@ -1837,7 +1908,11 @@ export default function App() {
                 }}
               >
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
                   <div
                     style={{
@@ -2204,7 +2279,10 @@ export default function App() {
                       getFilteredMessageLogs().length === 0 &&
                       messageLogs.length > 0 ? (
                         <div
-                          style={{ textAlign: "center", padding: "40px 20px" }}
+                          style={{
+                            textAlign: "center",
+                            padding: "40px 20px",
+                          }}
                         >
                           <FilterOutlined
                             style={{
@@ -2232,7 +2310,10 @@ export default function App() {
                         </div>
                       ) : (
                         <div
-                          style={{ textAlign: "center", padding: "40px 20px" }}
+                          style={{
+                            textAlign: "center",
+                            padding: "40px 20px",
+                          }}
                         >
                           <MessageOutlined
                             style={{
