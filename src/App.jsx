@@ -1469,7 +1469,7 @@ export default function App() {
                 </Space>
               </div>
               {/* Quick Search Bar */}
-              <div style={{ marginBottom: "16px" }}>
+              <Flex gap={7} align="center" style={{ marginBottom: "16px" }}>
                 <Input
                   className="search-input"
                   placeholder="Quick search calls..."
@@ -1484,6 +1484,73 @@ export default function App() {
                   style={{ borderRadius: "8px" }}
                   allowClear
                 />
+                <Select
+                  placeholder="Filter by status"
+                  value={callFilters.status}
+                  onChange={(value) =>
+                    setCallFilters((prev) => ({
+                      ...prev,
+                      status: value,
+                    }))
+                  }
+                  style={{ width: "250px", borderRadius: "8px" }}
+                  allowClear
+                  options={[
+                    { value: "all", label: "All Statuses" },
+                    { value: "completed", label: "✅ Completed" },
+                    { value: "failed", label: "❌ Failed" },
+                    { value: "busy", label: "📞 Busy" },
+                    { value: "no-answer", label: "🤐 No Answer" },
+                    { value: "canceled", label: "🚫 Canceled" },
+                    { value: "in-progress", label: "🔄 In Progress" },
+                    { value: "ringing", label: "🔔 Ringing" },
+                  ]}
+                />
+                <Select
+                  placeholder="Filter by duration"
+                  value={callFilters.duration}
+                  onChange={(value) =>
+                    setCallFilters((prev) => ({
+                      ...prev,
+                      duration: value,
+                    }))
+                  }
+                  style={{ width: "300px", borderRadius: "8px" }}
+                  allowClear
+                  options={[
+                    { value: "all", label: "All Durations" },
+                    { value: "short", label: "⏱️ Short (< 1 min)" },
+                    { value: "medium", label: "⏱️ Medium (1-5 min)" },
+                    { value: "long", label: "⏱️ Long (> 5 min)" },
+                  ]}
+                />
+              </Flex>
+
+              {/* Filter Summary Header */}
+              <div style={{ marginBottom: "12px" }}>
+                <Flex justify="space-between" align="center">
+                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                    Showing {getFilteredCallLogs().length} of {callLogs.length}{" "}
+                    calls
+                  </Text>
+                  {Object.values(callFilters).some(
+                    (v) => v !== "all" && v !== null && v !== ""
+                  ) && (
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ClearOutlined />}
+                      onClick={clearCallFilters}
+                      style={{
+                        padding: "0 8px",
+                        height: "auto",
+                        fontSize: "12px",
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </Flex>
               </div>
 
               {/* Filter Summary */}
@@ -1492,11 +1559,17 @@ export default function App() {
               ) && (
                 <div
                   className="filter-summary"
-                  style={{ marginBottom: "12px" }}
+                  style={{
+                    marginBottom: "12px",
+                    padding: "8px 12px",
+                    background: "#f8f9fa",
+                    borderRadius: "6px",
+                    border: "1px solid #e9ecef",
+                  }}
                 >
                   <Space wrap size="small">
                     <Text type="secondary" style={{ fontSize: "12px" }}>
-                      Active filters:
+                      🔍 Active filters:
                     </Text>
                     {callFilters.status !== "all" && (
                       <Tag
@@ -1506,8 +1579,9 @@ export default function App() {
                         onClose={() =>
                           setCallFilters((prev) => ({ ...prev, status: "all" }))
                         }
+                        style={{ borderRadius: "12px" }}
                       >
-                        Status: {callFilters.status}
+                        📞 {callFilters.status}
                       </Tag>
                     )}
                     {callFilters.duration !== "all" && (
@@ -1521,8 +1595,9 @@ export default function App() {
                             duration: "all",
                           }))
                         }
+                        style={{ borderRadius: "12px" }}
                       >
-                        Duration: {callFilters.duration}
+                        ⏱️ {callFilters.duration}
                       </Tag>
                     )}
                     {callFilters.dateRange && (
@@ -1536,20 +1611,12 @@ export default function App() {
                             dateRange: null,
                           }))
                         }
+                        style={{ borderRadius: "12px" }}
                       >
-                        Date: {callFilters.dateRange[0].format("MMM DD")} -{" "}
+                        📅 {callFilters.dateRange[0].format("MMM DD")} -{" "}
                         {callFilters.dateRange[1].format("MMM DD")}
                       </Tag>
                     )}
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<ClearOutlined />}
-                      onClick={clearCallFilters}
-                      style={{ padding: "0 8px", height: "auto" }}
-                    >
-                      Clear All
-                    </Button>
                   </Space>
                 </div>
               )}

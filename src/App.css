@@ -50,3 +50,57 @@
     background-position: 0% 50%;
   }
 }
+
+/* Call History Filters Styling */
+.filter-summary {
+  transition: all 0.3s ease;
+}
+
+.filter-summary:hover {
+  background: #e9ecef !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-tag {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-tag:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.search-input {
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 2px rgba(2, 179, 144, 0.2);
+  border-color: #02b390;
+}
+
+/* Filter dropdowns styling */
+.ant-select-selector {
+  transition: all 0.3s ease !important;
+}
+
+.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 2px rgba(2, 179, 144, 0.2) !important;
+  border-color: #02b390 !important;
+}
+
+/* Date picker styling */
+.ant-picker {
+  transition: all 0.3s ease;
+}
+
+.ant-picker:hover {
+  border-color: #02b390;
+}
+
+.ant-picker-focused {
+  box-shadow: 0 0 0 2px rgba(2, 179, 144, 0.2) !important;
+  border-color: #02b390 !important;
+}
